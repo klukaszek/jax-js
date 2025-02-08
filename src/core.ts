@@ -68,7 +68,7 @@ export function broadcast(x: TracerValue, shape: number[], axes: number[]) {
 export function reduceSum(x: TracerValue, axis?: number | number[]) {
   if (axis === null) {
     if (x instanceof Tracer) {
-      axis = [...JsArray(x.aval.shape.length).keys()];
+      axis = [...JsArray(x.shape.length).keys()];
     } else {
       axis = [];
     }
@@ -148,7 +148,11 @@ abstract class Tracer {
 
   abstract get aval(): AbstractValue;
 
-  fullLower() {
+  get shape() {
+    return this.aval.shape;
+  }
+
+  fullLower(): Tracer {
     return this; // default implementation
   }
 
@@ -338,7 +342,7 @@ class EvalTrace extends Trace {
 traceStack.push({ level: 0, traceType: EvalTrace, globalData: null });
 const baseArrayTrace = new EvalTrace(traceStack[0]);
 
-type ImplRule = (tracers: Array[], params: Record<string, any>) => Array[];
+type ImplRule = (tracers: Array[], params: any) => Array[];
 
 const implRules: Record<Primitive, ImplRule> = {
   [Primitive.Add]([x, y]) {
@@ -356,7 +360,7 @@ const implRules: Record<Primitive, ImplRule> = {
   [Primitive.Cos]([x]) {
     return [new Array(tf.cos(x.data))];
   },
-  [Primitive.ReduceSum]([x], { axis }: { axis?: number | number[] }) {
+  [Primitive.ReduceSum]([x], { axis }: { axis: number[] }) {
     return [new Array(tf.sum(x.data, axis))];
   },
   [Primitive.Greater]([x, y]) {
@@ -433,7 +437,7 @@ class JVPTrace extends Trace {
 type JvpRule = (
   primal: Tracer[],
   tangents: Tracer[],
-  params: Record<string, any>
+  params: any
 ) => [Tracer[], Tracer[]];
 
 const jvpRules: Partial<Record<Primitive, JvpRule>> = {
@@ -452,7 +456,7 @@ const jvpRules: Partial<Record<Primitive, JvpRule>> = {
   [Primitive.Cos]([x], [dx]) {
     return [[cos(x)], [neg(sin(x)).mul(dx)]];
   },
-  [Primitive.ReduceSum]([x], [dx], { axis }: { axis?: number | number[] }) {
+  [Primitive.ReduceSum]([x], [dx], { axis }: { axis: number[] }) {
     return [[reduceSum(x, axis)], [reduceSum(dx, axis)]];
   },
   [Primitive.Greater]([x, y], _tangents) {
@@ -491,26 +495,34 @@ export function jvp(
     throw new TypeError("Mismatched tree structures in jvp");
   }
 
-  let outTreeStored: JsTreeDef | null = null;
-  const flatFun = (...argsFlat: any[]) => {
-    const treeArgs = treeUnflatten(inTree, argsFlat);
-    const out = f(...treeArgs);
-    const [outFlat, outTree] = treeFlatten(out);
-    outTreeStored = outTree;
-    return outFlat;
-  };
+  const [flatFun, outTree] = flattenFun(f, inTree);
 
   const [primalsOutFlat, tangentsOutFlat] = jvpFlat(
     flatFun,
     primalsFlat,
     tangentsFlat
   );
-  if (outTreeStored === null) {
-    throw new Error("outTreeStored was not set");
+  if (outTree.value === undefined) {
+    throw new Error("outTree was not set");
   }
-  const primalsOut = treeUnflatten(outTreeStored, primalsOutFlat);
-  const tangentsOut = treeUnflatten(outTreeStored, tangentsOutFlat);
+  const primalsOut = treeUnflatten(outTree.value, primalsOutFlat);
+  const tangentsOut = treeUnflatten(outTree.value, tangentsOutFlat);
   return [primalsOut, tangentsOut];
+}
+
+function flattenFun(
+  f: any,
+  inTree: JsTreeDef
+): [any, { value: JsTreeDef | undefined }] {
+  const store: { value: JsTreeDef | undefined } = { value: undefined };
+  const flatFun = (...argsFlat: any[]) => {
+    const pytreeArgs = treeUnflatten(inTree, argsFlat);
+    const out = f(...pytreeArgs);
+    const [outFlat, outTree] = treeFlatten(out);
+    store.value = outTree;
+    return outFlat;
+  };
+  return [flatFun, store];
 }
 
 export function deriv(
@@ -519,5 +531,222 @@ export function deriv(
   return (x) => {
     const [_y, dy] = jvp(f, [x], [1.0]);
     return dy;
+  };
+}
+
+// vmap() implementation begins
+
+function mappedAval(batchDim: number, aval: AbstractValue) {
+  const shape = [...aval.shape];
+  shape.splice(batchDim, 1);
+  return new ShapedArray(shape, aval.dtype);
+}
+
+function moveBatchAxis(
+  axisSize: number,
+  src: number | null,
+  dst: number,
+  x: Tracer
+) {
+  if (src === null) {
+    // not_mapped
+    const targetShape = [...x.shape];
+    targetShape.splice(dst, 0, axisSize);
+    return broadcast(x, targetShape, [dst]);
+  } else if (src === dst) {
+    return x;
+  } else {
+    return moveaxis(x, src, dst);
+  }
+}
+
+/** Move one axis to a different index. */
+export function moveaxis(x: TracerValue, src: number, dst: number) {
+  const t = pureArray(x);
+  const perm = [...JsArray(t.shape.length).keys()];
+  perm.splice(src, 1);
+  perm.splice(dst, 0, src);
+  return transpose(t, perm);
+}
+
+class BatchTracer extends Tracer {
+  constructor(
+    trace: Trace,
+    public readonly val: Tracer,
+    public readonly batchDim: number | null
+  ) {
+    super(trace);
+  }
+
+  get aval(): AbstractValue {
+    if (this.batchDim === null) {
+      return this.val.aval;
+    } else {
+      return mappedAval(this.batchDim, this.val.aval);
+    }
+  }
+
+  fullLower() {
+    if (this.batchDim === null) {
+      return this.val.fullLower();
+    } else {
+      return this.val;
+    }
+  }
+}
+
+class BatchTrace extends Trace {
+  pure(val: TracerValue) {
+    return this.lift(pureArray(val));
+  }
+
+  lift(val: Tracer): Tracer {
+    return new BatchTracer(this, val, null);
+  }
+
+  processPrimitive(
+    primitive: Primitive,
+    tracers: BatchTracer[],
+    params: Record<string, any>
+  ): BatchTracer[] {
+    const [valsIn, bdimsIn] = unzip2(tracers.map((t) => [t.val, t.batchDim]));
+    const vmapRule = vmapRules[primitive];
+    if (vmapRule === undefined) {
+      throw new Error(`No vmap rule for: ${primitive}`);
+    }
+    const [valOuts, bdimOuts] = vmapRule(
+      this.axisSize,
+      valsIn,
+      bdimsIn,
+      params
+    );
+    return zip(valOuts, bdimOuts).map(
+      ([x, bd]) => new BatchTracer(this, x, bd)
+    );
+  }
+
+  get axisSize(): number {
+    return this.main.globalData;
+  }
+}
+
+type VmapRule = (
+  axisSize: number,
+  valsIn: Tracer[],
+  dimsIn: (number | null)[],
+  params: any
+) => [Tracer[], (number | null)[]];
+
+function binopBatchingRule(op: (x: Tracer, y: Tracer) => Tracer) {
+  return (
+    axisSize: number,
+    valsIn: Tracer[],
+    dimsIn: (number | null)[]
+  ): ReturnType<VmapRule> => {
+    let [x, y] = valsIn;
+    let [xBdim, yBdim] = dimsIn;
+    if (xBdim !== yBdim) {
+      if (xBdim === null) {
+        x = moveBatchAxis(axisSize, xBdim, yBdim!, x);
+        xBdim = yBdim;
+      } else {
+        y = moveBatchAxis(axisSize, yBdim, xBdim!, y);
+      }
+    }
+    return [[op(x, y)], [xBdim]];
+  };
+}
+
+function vectorizedUnopBatchingRule(op: (x: Tracer) => Tracer) {
+  return (
+    axisSize: number,
+    [x]: Tracer[],
+    [xBdim]: (number | null)[]
+  ): ReturnType<VmapRule> => {
+    return [[op(x)], [xBdim]];
+  };
+}
+
+const vmapRules: Partial<Record<Primitive, VmapRule>> = {
+  [Primitive.Add]: binopBatchingRule(add),
+  [Primitive.Mul]: binopBatchingRule(mul),
+  [Primitive.Neg]: vectorizedUnopBatchingRule(neg),
+  [Primitive.Sin]: vectorizedUnopBatchingRule(sin),
+  [Primitive.Cos]: vectorizedUnopBatchingRule(cos),
+  [Primitive.ReduceSum](
+    axisSize: number,
+    [x]: Tracer[],
+    [xBdim]: (number | null)[],
+    { axis }: { axis: number[] }
+  ): ReturnType<VmapRule> {
+    if (xBdim === null) {
+      return [[reduceSum(x, axis)], [null]];
+    }
+    const newAxis = axis.map((ax) => ax + (xBdim <= ax ? 1 : 0));
+    const outBdim = xBdim - axis.filter((ax) => ax < xBdim).length;
+    return [[reduceSum(x, newAxis)], [outBdim]];
+  },
+};
+
+function vmapFlat(
+  f: (...x: TracerValue[]) => TracerValue[],
+  inAxes: number[],
+  args: TracerValue[]
+): Tracer[] {
+  let axisSize: number | undefined = undefined;
+  for (let i = 0; i < args.length; i++) {
+    if (inAxes[i] !== null) {
+      const arg = args[i];
+      if (!(arg instanceof Tracer)) {
+        throw new TypeError("vmap requires Tracer argument for mapped axes");
+      }
+      const size = arg.shape[inAxes[i]];
+      if (axisSize === undefined) {
+        axisSize = size;
+      } else if (axisSize !== size) {
+        throw new TypeError(
+          "vmap requires all mapped axes to have the same size"
+        );
+      }
+    }
+  }
+  if (axisSize === undefined) {
+    throw new TypeError("vmap requires at least one mapped axis");
+  }
+
+  let valsOut: Tracer[], bdimsOut: (number | null)[];
+  {
+    using main = newMain(BatchTrace, axisSize);
+    const trace = new BatchTrace(main);
+    const tracersIn = args.map((x, i) =>
+      inAxes[i] === null
+        ? pureArray(x)
+        : new BatchTracer(trace, pureArray(x), inAxes[i])
+    );
+    const outs = f(...tracersIn);
+    const tracersOut = outs.map((out) => fullRaise(trace, out) as BatchTracer);
+    [valsOut, bdimsOut] = unzip2(tracersOut.map((t) => [t.val, t.batchDim]));
+  }
+  return zip(valsOut, bdimsOut).map(([valOut, bdim]) =>
+    moveBatchAxis(axisSize, bdim, 0, valOut)
+  ); // outs_transposed
+}
+
+export function vmap(
+  f: (...x: any[]) => any,
+  inAxes: any[]
+): (...x: any[]) => any {
+  return (...args: any[]) => {
+    const [argsFlat, inTree] = treeFlatten(args);
+    const [inAxesFlat, inTree2] = treeFlatten(inAxes);
+    if (!inTree.equals(inTree2)) {
+      throw new TypeError("Mismatched tree structures in vmap");
+    }
+    const [fFlat, outTree] = flattenFun(f, inTree);
+    if (outTree.value === undefined) {
+      throw new Error("outTree was not set");
+    }
+    const outsFlat = vmapFlat(fFlat, inAxesFlat, argsFlat);
+    return treeUnflatten(outTree.value, outsFlat);
   };
 }

@@ -38,6 +38,11 @@ export const reduceSum = core.reduceSum as (
   x: ArrayLike,
   axis?: number | number[]
 ) => Array;
+export const moveaxis = core.moveaxis as (
+  x: ArrayLike,
+  src: number,
+  dst: number
+) => Array;
 
 export function array(
   values: tf.TensorLike,

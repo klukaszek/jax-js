@@ -6,20 +6,27 @@ import type { JsTree } from "./tree";
 
 export { numpy, tree };
 
-type MapToArrayLike<T> = T extends Array
-  ? ArrayLike
+// Convert a subtype of JsTree<A> into a JsTree<B>, with the same structure.
+type MapJsTree<T, A, B> = T extends A
+  ? B
   : T extends globalThis.Array<infer U>
-    ? MapToArrayLike<U>[]
-    : { [K in keyof T]: MapToArrayLike<T[K]> };
+    ? MapJsTree<U, A, B>[]
+    : { [K in keyof T]: MapJsTree<T[K], A, B> };
 
+// Assert that a function's arguments are a subtype of the given type.
 type WithArgsSubtype<F extends (args: any[]) => any, T> =
   Parameters<F> extends T ? F : never;
 
 export const jvp = core.jvp as <F extends (...args: any[]) => JsTree<Array>>(
   f: WithArgsSubtype<F, JsTree<Array>>,
-  primals: MapToArrayLike<Parameters<F>>,
-  tangents: MapToArrayLike<Parameters<F>>
+  primals: MapJsTree<Parameters<F>, Array, ArrayLike>,
+  tangents: MapJsTree<Parameters<F>, Array, ArrayLike>
 ) => [ReturnType<F>, ReturnType<F>];
+
+export const vmap = core.vmap as <F extends (...args: any[]) => JsTree<Array>>(
+  f: WithArgsSubtype<F, JsTree<Array>>,
+  inAxes: MapJsTree<Parameters<F>, Array, number>
+) => F;
 
 export const deriv = core.deriv as unknown as (
   f: (x: ArrayLike) => ArrayLike
