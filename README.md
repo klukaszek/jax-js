@@ -16,3 +16,6 @@ npm test
 - [ ] Device switching with `.to()` between webgl/webgpu/cpu/wasm
 - [ ] First custom kernel
 - [ ] numpy/jax API compatibility table
+- [ ] Convert Jaxprs into a tree data structure
+- [ ] Pattern matchers for kernel fusion
+- [ ] Kernel codegen, or synthesis
