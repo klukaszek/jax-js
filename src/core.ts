@@ -940,7 +940,7 @@ function typecheckJaxpr(jaxpr: Jaxpr): JaxprType {
 
   for (const v of jaxpr.inBinders) {
     if (env.has(v)) {
-      throw new Error(`Duplicate variable binding: ${v}`);
+      throw new TypeError(`Duplicate variable binding: ${v}`);
     }
     env.add(v);
   }
@@ -955,7 +955,7 @@ function typecheckJaxpr(jaxpr: Jaxpr): JaxprType {
         );
       }
       if (env.has(outBinder)) {
-        throw new Error(`Duplicate variable binding: ${outBinder}`);
+        throw new TypeError(`Duplicate variable binding: ${outBinder}`);
       }
       env.add(outBinder);
     }
