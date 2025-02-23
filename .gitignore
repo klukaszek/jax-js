@@ -1,5 +1,7 @@
 node_modules/
+build/
 dist/
+.svelte-kit/
 
 # Test files from vitest
 __screenshots__/
