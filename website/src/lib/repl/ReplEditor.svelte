@@ -6,6 +6,10 @@
   let editor: Monaco.editor.IStandaloneCodeEditor;
   let monaco: typeof Monaco;
 
+  export function setText(text: string) {
+    editor?.setValue(text);
+  }
+
   onMount(async () => {
     monaco = (await import("$lib/monaco")).default;
 

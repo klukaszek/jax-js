@@ -31,6 +31,8 @@
     "vite": "^6.1.1"
   },
   "dependencies": {
+    "@rich_harris/svelte-split-pane": "^2.0.0",
+    "lucide-svelte": "^0.475.0",
     "monaco-editor": "^0.52.2",
     "svelte": "^5.20.2"
   }
