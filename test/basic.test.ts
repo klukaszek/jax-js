@@ -1,5 +1,5 @@
 import { expect, suite, test } from "vitest";
-import { numpy as np, jvp, jacfwd, vmap } from "jax-js";
+import { numpy as np, jvp, jacfwd, vmap } from "@jax-js/core";
 
 // test("has webgpu", async () => {
 //   const adapter = await navigator.gpu?.requestAdapter();

@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import { numpy as np } from "jax-js";
+import { numpy as np } from "@jax-js/core";
 
 expect.extend({
   toBeAllclose(received: np.ArrayLike, expected: np.ArrayLike) {

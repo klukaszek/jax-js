@@ -6,7 +6,7 @@
     "module": "ESNext",
     "moduleResolution": "node",
     "paths": {
-      "jax-js": ["."]
+      "@jax-js/core": ["."]
     },
     "types": ["@webgpu/types", "node"]
   }

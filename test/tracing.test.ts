@@ -1,5 +1,12 @@
 import { expect, suite, test } from "vitest";
-import { numpy as np, makeJaxpr, jvp, linearize, vjp, grad } from "jax-js";
+import {
+  numpy as np,
+  makeJaxpr,
+  jvp,
+  linearize,
+  vjp,
+  grad,
+} from "@jax-js/core";
 
 suite("jax.makeJaxpr()", () => {
   test("tracks a nullary function", () => {

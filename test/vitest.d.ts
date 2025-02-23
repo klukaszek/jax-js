@@ -1,5 +1,5 @@
 import "vitest";
-import { numpy as np } from "jax-js";
+import { numpy as np } from "@jax-js/core";
 
 interface CustomMatchers<R = unknown> {
   toBeAllclose: (expected: np.ArrayLike) => R;
