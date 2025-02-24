@@ -13,6 +13,7 @@
   } from "lucide-svelte";
 
   import ReplEditor from "$lib/repl/ReplEditor.svelte";
+  import { base } from "$app/paths";
 
   const codeSamples: {
     title: string;
@@ -272,7 +273,7 @@ const y = np.dot(X, np.array([1, 2])).add(3);
     {#snippet a()}
       <div class="shrink-0 bg-gray-50 px-4 py-4">
         <h1 class="text-xl font-light mb-4">
-          <a href="/"><span class="font-medium">jax-js</span> REPL</a>
+          <a href="{base}/"><span class="font-medium">jax-js</span> REPL</a>
         </h1>
 
         <hr class="mb-6 border-gray-200" />
