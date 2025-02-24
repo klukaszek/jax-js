@@ -279,11 +279,11 @@ const y = np.dot(X, np.array([1, 2])).add(3);
         <hr class="mb-6 border-gray-200" />
 
         <p class="text-sm mb-4">
-          Try out jax-js. Machine learning and numerical computing on the web!
+          Try out jax-js. Machine learning and numerical computing for the web!
         </p>
         <p class="text-sm mb-4">
-          The goal is to <em>just use</em> NumPy and JAX in the browser, on WASM
-          or WebGPU — with JIT and kernel fusion.
+          The goal is having NumPy and JAX-like APIs <em>in the browser</em>, on
+          WASM or WebGPU — with JIT compilation.
         </p>
 
         <pre class="mb-4 text-sm bg-gray-100 px-2 py-1 rounded"><code
