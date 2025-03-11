@@ -1,5 +1,5 @@
 import { suite, test, expect } from "vitest";
-import { View } from "./shape";
+import { ShapeTracker, View } from "./shape";
 
 suite("View.create()", () => {
   test("creates a contiguous view with default strides", () => {
@@ -288,5 +288,22 @@ suite("View.compose()", () => {
     ]);
     const composed = v2.compose(v1);
     expect(composed).toBeNull();
+  });
+});
+
+suite("ShapeTracker", () => {
+  test("simplifies views correctly", () => {
+    const base = ShapeTracker.fromShape([2, 3]);
+    expect(base.reshape([6]).compose(base)).toEqual(base);
+  });
+
+  test("can stack non-composable views", () => {
+    const base = ShapeTracker.fromShape([2, 3]);
+    const flipped = base.flip([true, false]);
+    expect(flipped.views).toHaveLength(1);
+    expect(flipped.reshape([3, 2]).views).toEqual([
+      flipped.views[0],
+      View.create([3, 2]),
+    ]);
   });
 });

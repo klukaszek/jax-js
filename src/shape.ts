@@ -568,3 +568,86 @@ function unravel(shape: number[], offset: number): number[] {
   }
   return idxs.reverse();
 }
+
+/**
+ * Array shape after applying movement operations, as a series of views.
+ *
+ * Each view is applied, then treated as if it were a contiguous array of its
+ * shape, then used as the virtual buffer for the next view.
+ */
+export class ShapeTracker {
+  constructor(readonly views: View[]) {} // Views apply left-to-right
+
+  /** Compose this shape tracker with another, applying after. */
+  compose(other: ShapeTracker): ShapeTracker {
+    let ret: ShapeTracker = this;
+    for (const v of other.views) {
+      ret = new ShapeTracker(ret.views.concat(v)).simplify();
+    }
+    return ret;
+  }
+
+  static fromShape(shape: number[]): ShapeTracker {
+    return new ShapeTracker([View.create(shape)]);
+  }
+
+  get contiguous(): boolean {
+    return this.views.length === 1 && this.views[0].contiguous;
+  }
+
+  get consecutive(): boolean {
+    // Like contiguous, but may have nonzero offset
+    return (
+      this.views.length === 1 &&
+      this.views[0].mask === null &&
+      deepEqual(this.views[0].strides, defaultStrides(this.views[0].shape))
+    );
+  }
+
+  get shape(): number[] {
+    return this.views[this.views.length - 1].shape;
+  }
+
+  get size(): number {
+    return this.views[this.views.length - 1].size;
+  }
+
+  simplify(): ShapeTracker {
+    const views = this.views.slice();
+    while (views.length >= 2) {
+      const newView = views[views.length - 2].compose(views[views.length - 1]);
+      if (newView === null) break;
+      views.splice(views.length - 2, 2, newView);
+    }
+    return new ShapeTracker(views);
+  }
+
+  pad(arg: Pair[]): ShapeTracker {
+    return new ShapeTracker(applyLast(this.views, (x) => x.pad(arg)));
+  }
+  shrink(arg: Pair[]): ShapeTracker {
+    return new ShapeTracker(applyLast(this.views, (x) => x.shrink(arg)));
+  }
+  expand(newShape: number[]): ShapeTracker {
+    return new ShapeTracker(applyLast(this.views, (x) => x.expand(newShape)));
+  }
+  permute(axis: number[]): ShapeTracker {
+    return new ShapeTracker(applyLast(this.views, (x) => x.permute(axis)));
+  }
+  flip(arg: boolean[]): ShapeTracker {
+    return new ShapeTracker(applyLast(this.views, (x) => x.flip(arg)));
+  }
+
+  reshape(newShape: number[]): ShapeTracker {
+    const newView = this.views[this.views.length - 1].reshape(newShape);
+    return new ShapeTracker(
+      newView === null
+        ? this.views.concat(View.create(newShape))
+        : this.views.toSpliced(this.views.length - 1, 1, newView),
+    );
+  }
+}
+
+function applyLast<T>(ar: T[], f: (x: T) => T): T[] {
+  return ar.toSpliced(ar.length - 1, 1, f(ar[ar.length - 1]));
+}
