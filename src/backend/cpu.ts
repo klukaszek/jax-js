@@ -1,5 +1,6 @@
+import { AluExp, DType } from "../alu";
 import { Backend, BackendOp, Slot, SlotError } from "../backend";
-import { ShapeTracker } from "../shape";
+import { ShapeTracker, unravelAlu } from "../shape";
 
 /** Most basic implementation of `Backend` for testing. */
 export class CPUBackend implements Backend {
@@ -68,7 +69,7 @@ export class CPUBackend implements Backend {
   ): void {
     const inputBuffers = inputs.map((slot) => this.#getBuffer(slot));
     const outputBuffers = outputs.map((slot) => this.#getBuffer(slot));
-    cpuOps[op](inputBuffers, outputBuffers);
+    cpuOps[op](inputBuffers, shapes, outputBuffers);
   }
 
   #getBuffer(slot: Slot): ArrayBuffer {
@@ -80,22 +81,48 @@ export class CPUBackend implements Backend {
 
 const cpuOps: Record<
   BackendOp,
-  (inputs: ArrayBuffer[], outputs: ArrayBuffer[]) => void
+  (
+    inputs: ArrayBuffer[],
+    shapes: ShapeTracker[],
+    outputs: ArrayBuffer[],
+  ) => void
 > = {
-  [BackendOp.Add]([a, b], [c]) {
+  [BackendOp.Add]([a, b], [as, bs], [c]) {
     const a32 = new Float32Array(a);
     const b32 = new Float32Array(b);
     const c32 = new Float32Array(c);
-    for (let i = 0; i < a32.length; i++) {
-      c32[i] = a32[i] + b32[i];
+
+    const gidx = AluExp.special(DType.Int32, "gidx", c32.length);
+    const [asexp, asvalid] = as.toAluExp(unravelAlu(as.shape, gidx));
+    const [bsexp, bsvalid] = bs.toAluExp(unravelAlu(bs.shape, gidx));
+
+    for (let i = 0; i < c32.length; i++) {
+      const a = asvalid.evaluate({ gidx: i })
+        ? a32[asexp.evaluate({ gidx: i })]
+        : 0;
+      const b = bsvalid.evaluate({ gidx: i })
+        ? b32[bsexp.evaluate({ gidx: i })]
+        : 0;
+      c32[i] = a + b;
     }
   },
-  [BackendOp.Mul]([a, b], [c]) {
+  [BackendOp.Mul]([a, b], [as, bs], [c]) {
     const a32 = new Float32Array(a);
     const b32 = new Float32Array(b);
     const c32 = new Float32Array(c);
-    for (let i = 0; i < a32.length; i++) {
-      c32[i] = a32[i] * b32[i];
+
+    const gidx = AluExp.special(DType.Int32, "gidx", c32.length);
+    const [asexp, asvalid] = as.toAluExp(unravelAlu(as.shape, gidx));
+    const [bsexp, bsvalid] = bs.toAluExp(unravelAlu(bs.shape, gidx));
+
+    for (let i = 0; i < c32.length; i++) {
+      const a = asvalid.evaluate({ gidx: i })
+        ? a32[asexp.evaluate({ gidx: i })]
+        : 0;
+      const b = bsvalid.evaluate({ gidx: i })
+        ? b32[bsexp.evaluate({ gidx: i })]
+        : 0;
+      c32[i] = a * b;
     }
   },
 };
