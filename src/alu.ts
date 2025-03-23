@@ -13,6 +13,8 @@ export enum DType {
  * graph rewrite engine.
  */
 export class AluExp {
+  #simplified?: AluExp;
+
   constructor(
     readonly op: AluOp,
     readonly dtype: DType,
@@ -73,6 +75,12 @@ export class AluExp {
 
   /** Simplify the expression by replacing any known patterns. */
   simplify(): AluExp {
+    // Cache this to avoid recomputing (especially exponential blowup).
+    if (this.#simplified !== undefined) return this.#simplified;
+    return (this.#simplified = this.simplifyInner());
+  }
+
+  simplifyInner(): AluExp {
     const src = this.src.map((x) => x.simplify());
     const { op } = this;
 

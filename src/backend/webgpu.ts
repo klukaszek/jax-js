@@ -196,12 +196,23 @@ function pipelineSource(nargs: number, exp: AluExp): string {
   let gensymCount = 0;
   const gensym = () => `alu${gensymCount++}`;
 
-  const expToVar = new Map<AluExp, string>();
+  const references = new Map<AluExp, number>();
+  const seen = new Set<AluExp>();
+  const countReferences = (exp: AluExp) => {
+    references.set(exp, (references.get(exp) ?? 0) + 1);
+    if (!seen.has(exp)) {
+      seen.add(exp);
+      for (const src of exp.src) countReferences(src);
+    }
+  };
+  countReferences(exp);
+
+  const expContext = new Map<AluExp, string>();
   const gen = (exp: AluExp): string => {
-    if (expToVar.has(exp)) return expToVar.get(exp)!;
+    if (expContext.has(exp)) return expContext.get(exp)!;
     const { op, src, dtype, arg } = exp;
 
-    // Some of these cases early `return` to inline it.
+    // Some of these cases early `return` to force-inline them.
     let source = "";
     if (AluGroup.Binary.has(op) || AluGroup.Compare.has(op)) {
       const a = gen(src[0]);
@@ -231,10 +242,15 @@ function pipelineSource(nargs: number, exp: AluExp): string {
 
     if (!source) throw new Error(`Missing impl for op: ${op}`);
     const typeName = dtypeToWgsl(dtype);
-    const name = gensym();
-    expToVar.set(exp, name);
-    kernel.push(`  let ${name}: ${typeName} = ${source};`);
-    return name;
+    if ((references.get(exp) ?? 0) > 1) {
+      const name = gensym();
+      expContext.set(exp, name);
+      kernel.push(`  let ${name}: ${typeName} = ${source};`);
+      return name;
+    } else {
+      expContext.set(exp, source);
+      return source;
+    }
   };
 
   kernel.push(`  result[gidx] = ${gen(exp)};`, "}");
