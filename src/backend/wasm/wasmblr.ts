@@ -161,18 +161,18 @@ export class CodeGenerator {
   nop() {
     this.emit(0x01);
   }
-  block(type: number) {
+  block(type: Type) {
     this.emit(0x02);
-    this.emit(type);
+    this.emit(type.typeId);
   }
-  loop(type: number) {
+  loop(type: Type) {
     this.emit(0x03);
-    this.emit(type);
+    this.emit(type.typeId);
   }
-  if_(type: number) {
+  if_(type: Type) {
     assert(this.pop() === this.i32, "if_: expected i32");
     this.emit(0x04);
-    this.emit(type);
+    this.emit(type.typeId);
   }
   else_() {
     this.emit(0x05);
