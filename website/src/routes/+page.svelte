@@ -9,25 +9,25 @@
 <main class="mx-auto my-12 px-4 sm:px-6 max-w-screen-md">
   <div class="mb-10">
     <h1 class="text-6xl text-center font-bold mb-4">jax-js</h1>
-    <p class="italic text-center">Numerical and GPU computing on the web</p>
+    <p class="italic text-center">Transformable GPU computing for the web</p>
   </div>
 
   <p class="mb-6">
-    Machine learning belongs in the browser—instantly accessible, and running on
-    local GPUs. But existing libraries are slow and weren't <em>designed for</em
-    > the web.
+    Have you ever wanted to use NumPy or PyTorch from the browser?
+  </p>
+
+  <p class="mb-6">
+    Really, machine learning belongs in the browser—instantly accessible, and
+    running on local GPUs. But the best libraries are in Python; they weren't
+    <em>built for</em> the web. We're trying to change that.
   </p>
 
   <pre class="mb-6 text-center"><code>npm install @jax-js/core</code></pre>
 
   <p class="mb-6">
-    <code>jax-js</code> brings high-performance GPUs and
-    <a
-      class="link"
-      target="_blank"
-      href="https://en.wikipedia.org/wiki/Automatic_differentiation">autograd</a
-    > to JavaScript. So you can do neural networks, statistics, image processing,
-    graphics, and all sorts of numerical computing.
+    <code>jax-js</code> brings high-performance GPUs to JavaScript, with a simple
+    API. So you can do neural networks, statistics, image processing, and all sorts
+    of numerical computing.
   </p>
 
   <div class="mb-6 grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
@@ -47,14 +47,13 @@
   </div>
 
   <p class="mb-6">
-    Like the Python libraries it's inspired by (JAX, NumPy, PyTorch), <code
-      >jax-js</code
+    Like the <a href="https://jax.dev" target="_blank" class="link"
+      >Python library</a
     >
-    is carefully hand-optimized, including a JIT compiler and scheduler for GPU kernels.
-    It's also
-    <strong>extremely simple and portable</strong>, running on Chrome, Firefox,
-    Safari, iOS, and Android. On each platform, the compiler generates
-    specialized kernels depending on the hardware.
+    it's inspired by, <code>jax-js</code> is carefully optimized, including a
+    JIT compiler and GPU kernel scheduler. It's also
+    <strong>extremely fast and portable</strong>, running on Chrome, Firefox,
+    Safari, iOS, and Android, while having best-in-class performance.
   </p>
 
   <div class="mb-6 border h-48 flex items-center justify-center square-grid">
@@ -65,11 +64,13 @@
   </div>
 
   <p class="mb-6">
-    How is this possible? In short: we compile operations to shaders running in
-    WebAssembly, WebGL, and WebGPU on modern browsers. The built-in compiler
-    generates very fast kernels, faster than hand-tuned neural network libraries
-    like <a href="https://www.tensorflow.org/" class="link">TensorFlow.js</a> at
-    running their own models.
+    How is this possible? <code>jax-js</code> has a compiler that generates
+    WebAssembly, WebGL, and WebGPU code on modern browsers. Its generated code
+    is even faster than specialized neural network libraries like
+    <a href="https://www.tensorflow.org/js/" target="_blank" class="link"
+      >Google's TensorFlow</a
+    >
+    at running their own models.
   </p>
 
   <p class="mb-6">
@@ -80,9 +81,10 @@
   </p>
 
   <p class="mb-6">
-    But although it's very good at ML, <code>jax-js</code> isn't just intended
-    for deep learning. It's a general <em>numerical computing library</em>
-    like JAX and NumPy, with GPUs and autograd attached.
+    If you've used JAX in Python before, <code>jax-js</code> mimics the API
+    closely. If not — don't worry, it's basically just NumPy arrays with a few
+    simple transformations (<code>grad</code>, <code>jit</code>,
+    <code>vmap</code>).
   </p>
 
   <p>
