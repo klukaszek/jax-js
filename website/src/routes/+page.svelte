@@ -18,18 +18,13 @@
     Have you ever wanted to use NumPy or PyTorch from the browser?
   </p>
 
-  <p class="mb-6">
-    Really, machine learning belongs in the browser—instantly accessible and
-    running locally. But the best libraries are in Python; they weren't
-    <em>built for</em> the web. We're trying to change that.
-  </p>
-
   <pre class="mb-6 text-center"><code>npm install @jax-js/core</code></pre>
 
   <p class="mb-6">
-    <code>jax-js</code> brings high-performance WebAssembly and GPU kernels to JavaScript,
-    with a simple API. So you can do neural networks, statistics, image processing,
-    and all sorts of numerical computing.
+    <code>jax-js</code> brings high-performance WebAssembly and GPU kernels to
+    JavaScript. Develop, run, and distribute neural networks, data
+    visualizations, image algorithms, and all sorts of other numerical
+    applications. <code>jax-js</code> aims for feature parity with Python libraries.
   </p>
 
   <div class="mb-6 grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
@@ -85,7 +80,7 @@
   <p class="mb-6">
     NumPy (2005), PyTorch (2016), and JAX (2018) revolutionized numerical
     computing and sparked a flourishing ecosystem in Python. <code>jax-js</code>
-    aspires to bring that same foundation to JavaScript.
+    aspires to provide that same foundation for JavaScript.
   </p>
 
   <p>
