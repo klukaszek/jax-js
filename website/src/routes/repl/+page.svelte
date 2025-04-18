@@ -92,6 +92,8 @@ const y = np.dot(X, np.array([1, 2])).add(3);
     const ts = await import("typescript");
     const { rollup } = await import("@rollup/browser");
 
+    await jax.init();
+
     const userCode = replEditor.getText();
 
     // Create a simple virtual module plugin to resolve our in-memory modules.
