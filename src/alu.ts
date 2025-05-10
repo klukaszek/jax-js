@@ -229,6 +229,10 @@ export class AluExp {
     return this.#computeRange()[1];
   }
 
+  #isConstInt(): boolean {
+    return this.op === AluOp.Const && this.dtype === DType.Int32;
+  }
+
   /** Simplify the expression by replacing any known patterns. */
   simplify(): AluExp {
     // Cache this to avoid recomputing (especially exponential blowup).
@@ -279,16 +283,16 @@ export class AluExp {
     if (
       op === AluOp.Add &&
       src[0].op === AluOp.Mul &&
-      src[0].src[1].op === AluOp.Const &&
+      src[0].src[1].#isConstInt() &&
       src[1].op === AluOp.Mod &&
-      src[1].src[1].op === AluOp.Const &&
+      src[1].src[1].#isConstInt() &&
       src[0].src[1].arg === src[1].src[1].arg
     ) {
       const [mul, mod] = src;
       const check = (exp: AluExp) => {
         return (
           exp.op === AluOp.Idiv &&
-          exp.src[1].op === AluOp.Const &&
+          exp.src[1].#isConstInt() &&
           exp.src[1].arg === mod.src[1].arg &&
           exp.src[0] === mod.src[0]
         );
@@ -300,6 +304,37 @@ export class AluExp {
         const [x, y] = mul.src[0].src;
         if (check(x)) {
           return AluExp.mod(mod.src[0], AluExp.mul(mod.src[1], y)).simplify();
+        }
+      }
+    }
+    if (op === AluOp.Idiv && src[1].#isConstInt()) {
+      const [numer, denom] = src;
+      const B = denom.arg;
+      for (let i = 0; i < 2; i++) {
+        // (x * A) / B => x * (A / B)
+        if (numer.op === AluOp.Mul && numer.src[i].#isConstInt()) {
+          const A = numer.src[i].arg;
+          if (A % B === 0) {
+            let ret = numer.src[1 - i]; // x
+            if (A / B !== 1) ret = AluExp.mul(ret, AluExp.i32(A / B));
+            return ret.simplify();
+          }
+        }
+        // (x * A + C) / B => x * (A / B) + floor(C / B)
+        for (let j = 0; j < 2; j++) {
+          if (
+            numer.op === AluOp.Add &&
+            numer.src[j].op === AluOp.Mul &&
+            numer.src[j].src[i].#isConstInt()
+          ) {
+            const A = numer.src[j].src[i].arg;
+            if (A % B === 0) {
+              let ret = numer.src[j].src[1 - i]; // x
+              if (A / B !== 1) ret = AluExp.mul(ret, AluExp.i32(A / B));
+              ret = AluExp.add(ret, AluExp.idiv(numer.src[1 - j], B));
+              return ret.simplify();
+            }
+          }
         }
       }
     }
