@@ -486,10 +486,7 @@ export const abstractEvalRules: Record<Primitive, AbstractEvalRule> = {
     const newShape = x.shape.filter((_, i) => !axisSet.has(i));
     return [new ShapedArray(newShape, x.dtype)];
   },
-  [Primitive.Greater]: compareAbstractEval,
-  [Primitive.Less]: compareAbstractEval,
-  [Primitive.Equal]: compareAbstractEval,
-  [Primitive.NotEqual]: compareAbstractEval,
+  [Primitive.Compare]: compareAbstractEval,
   [Primitive.Where]([cond, x, y]) {
     if (cond.dtype !== DType.Bool)
       throw new TypeError(`Condition must be boolean, got ${cond.dtype}`);

@@ -15,13 +15,17 @@ export enum Primitive {
   Sin = "sin",
   Cos = "cos",
   ReduceSum = "reduce_sum",
+  Compare = "compare",
+  Where = "where",
+  Transpose = "transpose",
+  Broadcast = "broadcast",
+}
+
+export enum CompareOp {
   Greater = "greater",
   Less = "less",
   Equal = "equal",
   NotEqual = "not_equal",
-  Where = "where",
-  Transpose = "transpose",
-  Broadcast = "broadcast",
 }
 
 export function add(x: TracerValue, y: TracerValue) {
@@ -44,20 +48,20 @@ export function cos(x: TracerValue) {
   return bind1(Primitive.Cos, [x]);
 }
 
+export function compare(x: TracerValue, y: TracerValue, op: CompareOp) {
+  return bind1(Primitive.Compare, [x, y], { op });
+}
 export function greater(x: TracerValue, y: TracerValue) {
-  return bind1(Primitive.Greater, [x, y]);
+  return compare(x, y, CompareOp.Greater);
 }
-
 export function less(x: TracerValue, y: TracerValue) {
-  return bind1(Primitive.Less, [x, y]);
+  return compare(x, y, CompareOp.Less);
 }
-
 export function equal(x: TracerValue, y: TracerValue) {
-  return bind1(Primitive.Equal, [x, y]);
+  return compare(x, y, CompareOp.Equal);
 }
-
 export function notEqual(x: TracerValue, y: TracerValue) {
-  return bind1(Primitive.NotEqual, [x, y]);
+  return compare(x, y, CompareOp.NotEqual);
 }
 
 export function where(cond: TracerValue, x: TracerValue, y: TracerValue) {

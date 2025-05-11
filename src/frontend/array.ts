@@ -19,6 +19,7 @@ import {
   repeat,
 } from "../utils";
 import {
+  CompareOp,
   getAval,
   newMain,
   Primitive,
@@ -487,24 +488,22 @@ export class Array extends Tracer {
         if (axis.length === 0) return [x];
         return [x.#moveAxesDown(axis).#reduce(AluOp.Add)];
       },
-      [Primitive.Greater]([x, y]) {
-        // `x > y` is equivalent to `x != y && !(x < y)`
-        // TODO: handle NaN
-        const custom = ([x, y]: AluExp[]) =>
-          AluExp.mul(AluExp.cmpne(x, y), AluExp.cmplt(x, y).not());
-        return [Array.#naryCustom("greater", custom, [x, y], [], DType.Bool)];
-      },
-      [Primitive.Less]([x, y]) {
-        const custom = ([x, y]: AluExp[]) => AluExp.cmplt(x, y);
-        return [Array.#naryCustom("less", custom, [x, y], [], DType.Bool)];
-      },
-      [Primitive.Equal]([x, y]) {
-        const custom = ([x, y]: AluExp[]) => AluExp.cmpne(x, y).not();
-        return [Array.#naryCustom("equal", custom, [x, y], [], DType.Bool)];
-      },
-      [Primitive.NotEqual]([x, y]) {
-        const custom = ([x, y]: AluExp[]) => AluExp.cmpne(x, y);
-        return [Array.#naryCustom("notEqual", custom, [x, y], [], DType.Bool)];
+      [Primitive.Compare]([x, y], { op }: { op: CompareOp }) {
+        const custom = ([x, y]: AluExp[]) => {
+          switch (op) {
+            case CompareOp.Greater:
+              // `x > y` is equivalent to `x != y && !(x < y)`
+              // TODO: handle NaN
+              return AluExp.mul(AluExp.cmpne(x, y), AluExp.cmplt(x, y).not());
+            case CompareOp.Less:
+              return AluExp.cmplt(x, y);
+            case CompareOp.Equal:
+              return AluExp.cmpne(x, y).not();
+            case CompareOp.NotEqual:
+              return AluExp.cmpne(x, y);
+          }
+        };
+        return [Array.#naryCustom("compare", custom, [x, y], [], DType.Bool)];
       },
       [Primitive.Where]([cond, x, y]) {
         const custom = ([cond, x, y]: AluExp[]) => AluExp.where(cond, x, y);
