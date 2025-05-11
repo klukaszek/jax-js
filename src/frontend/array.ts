@@ -131,26 +131,6 @@ export class Array extends Tracer {
     }
   }
 
-  static zeros(shape: number[], { dtype, backend }: DTypeAndBackend = {}) {
-    dtype = dtype ?? DType.Float32;
-    return new Array(
-      AluExp.const(dtype, 0),
-      ShapeTracker.fromShape(shape),
-      dtype,
-      getBackend(backend),
-    );
-  }
-
-  static ones(shape: number[], { dtype, backend }: DTypeAndBackend = {}) {
-    dtype = dtype ?? DType.Float32;
-    return new Array(
-      AluExp.const(dtype, 1),
-      ShapeTracker.fromShape(shape),
-      dtype,
-      getBackend(backend),
-    );
-  }
-
   /**
    * Convert this array into a primitive value.
    *
@@ -183,6 +163,7 @@ export class Array extends Tracer {
     );
   }
 
+  // TODO: reshape() should exist on the Tracer level, not the Array level.
   reshape(shape: number[]): Array {
     const autoIdx = shape.indexOf(-1);
     if (autoIdx !== -1) {
@@ -577,7 +558,7 @@ export function array(
       values = values.reshape(shape);
     }
     if (dtype && values.dtype !== dtype) {
-      throw new Error("array astype not implemented yet");
+      throw new Error("array astype not implemented yet"); // TODO
       // values = values.astype(dtype);
     }
     return values;
@@ -601,7 +582,7 @@ export function array(
         `Jagged shape: ${JSON.stringify(shape)} vs ${flat.length}`,
       );
     }
-    if (size === 0) return Array.zeros(shape, { dtype, backend });
+    if (size === 0) return zeros(shape, { dtype, backend });
     if (typeof flat[0] === "boolean") {
       dtype = dtype ?? DType.Bool;
       const data = new Int32Array(flat.map((x) => (x ? 1 : 0)));
@@ -698,11 +679,48 @@ export function zerosLike(val: TracerValue): Array {
   return zeros(aval.shape, { dtype: aval.dtype });
 }
 
+/** Return a new array of given shape and type, filled with zeros. */
 export function zeros(
   shape: number[],
   { dtype, backend }: DTypeAndBackend = {},
 ): Array {
-  return Array.zeros(shape, { dtype, backend });
+  return full(shape, 0, { dtype, backend });
+}
+
+/** Return a new array of given shape and type, filled with ones. */
+export function ones(
+  shape: number[],
+  { dtype, backend }: DTypeAndBackend = {},
+): Array {
+  return full(shape, 1, { dtype, backend });
+}
+
+/** Return a new array of given shape and type, filled with `fill_value`. */
+export function full(
+  shape: number[],
+  fillValue: number | boolean | Array,
+  { dtype, backend }: DTypeAndBackend = {},
+): Array {
+  let source: AluExp;
+  if (typeof fillValue === "number") {
+    dtype = dtype ?? DType.Float32;
+    source = AluExp.const(dtype, fillValue);
+  } else if (typeof fillValue === "boolean") {
+    dtype = dtype ?? DType.Bool;
+    source = AluExp.const(dtype, fillValue ? 1 : 0);
+  } else if (fillValue instanceof Array) {
+    // TODO: Full can also take an array as a fill value. This is equivalent to
+    // expanding the array.
+    throw new Error("numpy.full() with array argument not implemented yet");
+  } else {
+    throw new TypeError(`Invalid type for full: ${fillValue}`);
+  }
+  return new Array(
+    source,
+    ShapeTracker.fromShape(shape),
+    dtype ?? DType.Float32,
+    getBackend(backend),
+  );
 }
 
 /**
@@ -726,7 +744,7 @@ export function eye(
     return arr.transpose();
   }
   if (numRows === 0) {
-    return Array.zeros([0, numCols], { dtype, backend });
+    return zeros([0, numCols], { dtype, backend });
   }
 
   const exp = AluExp.cmplt(

@@ -6,7 +6,7 @@ export enum DType {
   Float32 = "float32",
   Int32 = "int32",
   Bool = "bool",
-  Complex64 = "complex64", // unimplemented
+  Complex64 = "complex64", // TODO: unimplemented
 }
 
 const isFloatDtype = (dtype: DType) =>

@@ -1,10 +1,19 @@
 import { DType } from "./alu";
-import { Array, array, eye, pureArray, scalar, zeros } from "./frontend/array";
+import {
+  array,
+  Array,
+  eye,
+  full,
+  ones,
+  pureArray,
+  scalar,
+  zeros,
+} from "./frontend/array";
 import * as core from "./frontend/core";
 import * as vmapModule from "./frontend/vmap";
 import { deepEqual } from "./utils";
 
-export { Array, array, DType, eye, scalar, zeros };
+export { Array, array, DType, eye, scalar, zeros, ones, full };
 
 export const float32 = DType.Float32;
 export const int32 = DType.Int32;
@@ -110,7 +119,7 @@ export function diag(v: ArrayLike, k = 0): Array {
   if (a.ndim === 1) {
     const n = a.shape[0];
     const ret = where(eye(n).equal(1), a, 0);
-    // pad() is unimplemented at this layer
+    // TODO: pad() is unimplemented at this layer
     if (k !== 0) throw new Error("diag() for 1D arrays only for k=0");
     return ret;
   } else if (a.ndim === 2) {

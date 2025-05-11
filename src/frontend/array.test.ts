@@ -1,7 +1,7 @@
 import { beforeEach, expect, suite, test } from "vitest";
 
 import { backendTypes, init, setBackend } from "../backend";
-import { Array, array } from "./array";
+import { array, ones, zeros } from "./array";
 
 const backendsAvailable = await init(...backendTypes);
 
@@ -13,8 +13,8 @@ suite.each(backendTypes)("backend:%s", (backend) => {
     setBackend(backend);
   });
 
-  test("can construct Array.zeros()", async () => {
-    const ar = Array.zeros([3, 3]);
+  test("can construct zeros()", async () => {
+    const ar = zeros([3, 3]);
     expect(ar.shape).toEqual([3, 3]);
     expect(ar.dtype).toEqual("float32");
     expect(await ar.data()).toEqual(
@@ -28,16 +28,16 @@ suite.each(backendTypes)("backend:%s", (backend) => {
     );
   });
 
-  test("can construct Array.ones()", async () => {
-    const ar = Array.ones([2, 2]);
+  test("can construct ones()", async () => {
+    const ar = ones([2, 2]);
     expect(ar.shape).toEqual([2, 2]);
     expect(ar.dtype).toEqual("float32");
     expect(await ar.data()).toEqual(new Float32Array([1, 1, 1, 1]));
   });
 
   test("can add two arrays", async () => {
-    const ar1 = Array.ones([2, 2]);
-    const ar2 = Array.ones([2, 2]);
+    const ar1 = ones([2, 2]);
+    const ar2 = ones([2, 2]);
     const ar3 = ar1.add(ar2);
     expect(ar3.shape).toEqual([2, 2]);
     expect(ar3.dtype).toEqual("float32");
