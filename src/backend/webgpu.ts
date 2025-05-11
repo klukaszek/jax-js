@@ -321,7 +321,9 @@ function pipelineSource(
 
   if (!kernel.reduction) {
     countReferences(tune.exp);
-    emit(`result[gidx] = ${resultTy}(${gen(tune.exp)});`);
+    let rhs = gen(tune.exp);
+    if (resultTy !== dtypeToWgsl(tune.exp.dtype)) rhs = `${resultTy}(${rhs})`;
+    emit(`result[gidx] = ${rhs};`);
   } else {
     const re = kernel.reduction;
     if ((tune.size.groups ?? 1) > 1) {
@@ -387,7 +389,10 @@ function pipelineSource(
     }
     for (let i = 0; i < upcast; i++) {
       const index = gen(outputIdxExps[i]);
-      emit(`result[${index}] = ${resultTy}(${gen(fusionExps[i])});`);
+      let rhs = gen(fusionExps[i]);
+      if (resultTy !== dtypeToWgsl(fusionExps[i].dtype))
+        rhs = `${resultTy}(${rhs})`;
+      emit(`result[${index}] = ${rhs};`);
     }
   }
 
