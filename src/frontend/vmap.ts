@@ -212,7 +212,7 @@ const vmapRules: Partial<Record<Primitive, VmapRule>> = {
   [Primitive.Compare](axisSize, args, dims, { op }: { op: CompareOp }) {
     return broadcastBatcher((x, y) => compare(x, y, op))(axisSize, args, dims);
   },
-  // TODO: where, transpose, broadcast, reshape
+  // TODO: where, transpose, broadcast, reshape, flip
 };
 
 function vmapFlat(

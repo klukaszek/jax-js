@@ -8,6 +8,7 @@ import {
   CompareOp,
   cos,
   flattenFun,
+  flip,
   fullRaise,
   neg,
   newMain,
@@ -113,6 +114,9 @@ const jvpRules: Record<Primitive, JvpRule> = {
   },
   [Primitive.Reshape]([x], [dx], { shape }: { shape: number[] }) {
     return [[reshape(x, shape)], [reshape(dx, shape)]];
+  },
+  [Primitive.Flip]([x], [dx], { axis }: { axis: number[] }) {
+    return [[flip(x, axis)], [flip(dx, axis)]];
   },
 };
 

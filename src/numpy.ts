@@ -84,12 +84,6 @@ export const transpose = core.transpose as (
   x: ArrayLike,
   perm?: number[],
 ) => Array;
-/** Repeat an array, adding new dimensions at the specified axes. */
-export const broadcast = core.broadcast as (
-  x: ArrayLike,
-  shape: number[],
-  axis: number[],
-) => Array;
 /**
  * Give a new shape to an array without changing its data.
  *
@@ -106,6 +100,30 @@ export const moveaxis = vmapModule.moveaxis as (
   src: number,
   dst: number,
 ) => Array;
+
+/** Reverse the elements in an array along the given axes. */
+export function flip(x: ArrayLike, axis?: number | number[]): Array {
+  const nd = ndim(x);
+  if (axis === undefined) {
+    axis = range(nd);
+  } else if (typeof axis === "number") {
+    axis = [axis];
+  }
+  const seen = new Set<number>();
+  for (let i = 0; i < axis.length; i++) {
+    if (axis[i] >= nd || axis[i] < -nd) {
+      throw new TypeError(
+        `flip: axis ${axis[i]} out of bounds for array of ${nd} dimensions`,
+      );
+    }
+    if (axis[i] < 0) axis[i] += nd; // convert negative to positive
+    if (seen.has(axis[i])) {
+      throw new TypeError(`flip: duplicate axis ${axis[i]} in axis list`);
+    }
+    seen.add(axis[i]);
+  }
+  return core.flip(x, axis) as Array;
+}
 
 // Alternate or equivalent names for functions, from numpy.
 export const permuteDims = transpose;

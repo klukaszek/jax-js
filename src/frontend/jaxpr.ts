@@ -512,6 +512,9 @@ export const abstractEvalRules: Record<Primitive, AbstractEvalRule> = {
   [Primitive.Reshape]([x], { shape }: { shape: number[] }) {
     return [new ShapedArray(shape, x.dtype)];
   },
+  [Primitive.Flip]([x], _: { axis: number[] }) {
+    return [new ShapedArray(x.shape, x.dtype)];
+  },
 };
 
 export function makeJaxpr(

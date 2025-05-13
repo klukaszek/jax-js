@@ -202,4 +202,30 @@ suite.each(backendTypes)("backend:%s", (backend) => {
       expect(dy).toBeAllclose(4);
     });
   });
+
+  suite("jax.numpy.flip()", () => {
+    test("flips a 1D array", () => {
+      const x = np.array([1, 2, 3]);
+      expect(np.flip(x).js()).toEqual([3, 2, 1]);
+    });
+
+    test("flips a 2D array", () => {
+      const x = np.array([
+        [1, 2, 3],
+        [4, 5, 6],
+      ]);
+      expect(np.flip(x).js()).toEqual([
+        [6, 5, 4],
+        [3, 2, 1],
+      ]);
+      expect(np.flip(x, 0).js()).toEqual([
+        [4, 5, 6],
+        [1, 2, 3],
+      ]);
+      expect(np.flip(x, 1).js()).toEqual([
+        [3, 2, 1],
+        [6, 5, 4],
+      ]);
+    });
+  });
 });

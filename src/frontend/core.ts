@@ -20,6 +20,7 @@ export enum Primitive {
   Transpose = "transpose",
   Broadcast = "broadcast",
   Reshape = "reshape",
+  Flip = "flip",
 }
 
 export enum CompareOp {
@@ -105,6 +106,10 @@ export function reshape(x: TracerValue, shape: number | number[]) {
     );
   }
   return bind1(Primitive.Reshape, [x], { shape });
+}
+
+export function flip(x: TracerValue, axis: number[]) {
+  return bind1(Primitive.Flip, [x], { axis });
 }
 
 export function reduceSum(x: TracerValue, axis?: number | number[]) {

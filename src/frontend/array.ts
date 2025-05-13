@@ -16,6 +16,7 @@ import {
   prod,
   RecursiveArray,
   recursiveFlatten,
+  rep,
   repeat,
 } from "../utils";
 import {
@@ -496,6 +497,11 @@ export class Array extends Tracer {
       },
       [Primitive.Reshape]([x], { shape }: { shape: number[] }) {
         return [x.#reshape(x.#st.reshape(shape))];
+      },
+      [Primitive.Flip]([x], { axis }: { axis: number[] }) {
+        const arg = rep(x.ndim, false);
+        for (const ax of axis) arg[ax] = true;
+        return [x.#reshape(x.#st.flip(arg))];
       },
     };
   }

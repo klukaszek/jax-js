@@ -10,6 +10,7 @@ import {
   bind,
   broadcast,
   flattenFun,
+  flip,
   fullRaise,
   mul,
   ndim,
@@ -477,6 +478,10 @@ const transposeRules: Partial<Record<Primitive, TransposeRule>> = {
     if (!(x instanceof UndefPrimal))
       throw new NonlinearError(Primitive.Reshape);
     return [reshape(ct, x.aval.shape)];
+  },
+  [Primitive.Flip]([ct], [x], { axis }: { axis: number[] }) {
+    if (!(x instanceof UndefPrimal)) throw new NonlinearError(Primitive.Flip);
+    return [flip(ct, axis)];
   },
 };
 
