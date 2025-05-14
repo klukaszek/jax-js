@@ -285,8 +285,12 @@ export class Array extends Tracer {
       if (ar.#source instanceof AluExp) {
         src.push(accessorAluExp(ar.#source, ar.#st, indices));
       } else {
-        src.push(AluExp.globalView(ar.#dtype, inputs.length, ar.#st, indices));
-        inputs.push(ar.#source);
+        let gid = inputs.indexOf(ar.#source);
+        if (gid === -1) {
+          gid = inputs.length;
+          inputs.push(ar.#source);
+        }
+        src.push(AluExp.globalView(ar.#dtype, gid, ar.#st, indices));
       }
     }
 
