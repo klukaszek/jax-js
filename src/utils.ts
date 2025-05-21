@@ -190,11 +190,11 @@ export function strip1(str: string): string {
  * See https://en.wikipedia.org/wiki/Lagrange%27s_theorem_(number_theory)
  */
 export class FpHash {
-  value: bigint = 0n;
+  value: bigint = 8773157n;
 
   #update(x: bigint) {
     // These primes were arbitrarily chosen, should be at least 10^9.
-    const base = 3022769n;
+    const base = 873192869n;
     const modulus = 3189051996290219n; // Less than 2^53-1, for convenience.
 
     this.value = (this.value * base + x) % modulus;
@@ -203,13 +203,15 @@ export class FpHash {
   update(...values: (string | boolean | bigint | null | undefined)[]): this {
     for (const x of values) {
       if (typeof x === "string") {
-        for (const c of x) this.#update(BigInt(c.charCodeAt(0)));
+        for (const c of x) this.#update(BigInt(199 + c.charCodeAt(0)));
       } else if (typeof x === "boolean") {
-        this.#update(x ? 71657401n : 63640693n);
+        this.#update(x ? 69069841n : 63640693n);
       } else if (typeof x === "bigint") {
-        this.#update(x + 37832657n);
+        // When combining the output of another hash, must be nonlinear to avoid
+        // obvious collisions.
+        this.#update(x ^ 71657401n);
       } else if (x === null) {
-        this.#update(69069841n);
+        this.#update(37832657n);
       } else if (x === undefined) {
         this.#update(18145117n);
       }
