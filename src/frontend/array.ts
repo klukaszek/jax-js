@@ -406,6 +406,18 @@ export class Array extends Tracer {
       : new Int32Array(buf);
   }
 
+  /** Wait for this array to be placed on the backend, if needed. */
+  async wait(): Promise<void> {
+    if (this.#source instanceof AluExp) return;
+    const pending = this.#pending;
+    if (pending) {
+      // Compile all pending executables concurrently.
+      await Promise.all(pending.map((exe) => exe.prepare(this.#backend)));
+      for (const p of pending) p.submit(this.#backend);
+    }
+    await this.#backend.read(this.#source, 0, 0);
+  }
+
   /**
    * Realize the array and return it as data. This is a sync variant and not
    * recommended for performance reasons, as it will block rendering.

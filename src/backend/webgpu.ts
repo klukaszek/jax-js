@@ -43,9 +43,17 @@ export class WebGPUBackend implements Backend {
       if (initialData.byteLength !== size) {
         throw new Error("initialData size does not match buffer size");
       }
-      buffer = this.#createBuffer(size, { mapped: true });
-      new Uint8Array(buffer.getMappedRange()).set(new Uint8Array(initialData));
-      buffer.unmap();
+      if (initialData.byteLength < 4096) {
+        buffer = this.#createBuffer(size, { mapped: true });
+        new Uint8Array(buffer.getMappedRange()).set(
+          new Uint8Array(initialData),
+        );
+        buffer.unmap();
+      } else {
+        // getMappedRange() seems slower for large buffers, use writeBuffer() instead.
+        buffer = this.#createBuffer(size);
+        this.device.queue.writeBuffer(buffer, 0, initialData);
+      }
     } else {
       buffer = this.#createBuffer(size);
     }

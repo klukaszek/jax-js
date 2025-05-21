@@ -675,6 +675,8 @@ fn main(@builtin(global_invocation_id) global_id : vec3<u32>) {
 
       const a = tf.tensor(randomBuffer, [n, n]);
       const b = tf.tensor(randomBuffer, [n, n]);
+      await Promise.all([a.data(), b.data()]); // Make sure tensors are ready.
+
       const start = performance.now();
       const c = tf.matMul(a, b);
       const ar = (await c.data()) as Float32Array;
@@ -700,8 +702,8 @@ fn main(@builtin(global_invocation_id) global_id : vec3<u32>) {
 
       const a = np.array(randomBuffer, { shape: [n, n] });
       const b = np.array(randomBuffer, { shape: [n, n] });
-      await a.data();
-      await b.data(); // TODO: Why is this needed? Should we use writeBuffer() instead of mapping?
+      await Promise.all([a.wait(), b.wait()]); // Make sure tensors are ready.
+
       const start = performance.now();
       const c = np.dot(a, b);
       const ar = (await c.data()) as Float32Array;
