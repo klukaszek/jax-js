@@ -702,7 +702,7 @@ fn main(@builtin(global_invocation_id) global_id : vec3<u32>) {
 
       const a = np.array(randomBuffer, { shape: [n, n] });
       const b = np.array(randomBuffer, { shape: [n, n] });
-      await Promise.all([a.wait(), b.wait()]); // Make sure tensors are ready.
+      await Promise.all([a.ref.wait(), b.ref.wait()]); // Make sure tensors are ready.
 
       const start = performance.now();
       const c = np.dot(a, b);
