@@ -356,12 +356,11 @@ export function meshgrid(
 export function clip(a: Array, min?: ArrayLike, max?: ArrayLike): Array {
   if (max !== undefined) {
     const maxArray = array(max);
-    a = clip(a, min);
-    return where(greater(a.ref, maxArray.ref), maxArray, a);
+    a = where(greater(a.ref, maxArray.ref), maxArray, a);
   }
   if (min !== undefined) {
     const minArray = array(min);
-    return where(less(a.ref, minArray.ref), minArray, a);
+    a = where(less(a.ref, minArray.ref), minArray, a);
   }
   return a; // No clipping, just return the original array.
 }
