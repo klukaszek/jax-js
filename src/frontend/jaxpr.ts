@@ -680,6 +680,8 @@ export const abstractEvalRules: Record<Primitive, AbstractEvalRule> = {
   [Primitive.Reciprocal]: vectorizedUnopAbstractEval,
   [Primitive.Sin]: vectorizedUnopAbstractEval,
   [Primitive.Cos]: vectorizedUnopAbstractEval,
+  [Primitive.Exp]: vectorizedUnopAbstractEval,
+  [Primitive.Log]: vectorizedUnopAbstractEval,
   [Primitive.Min]: binopAbstractEval,
   [Primitive.Max]: binopAbstractEval,
   [Primitive.ReduceSum]([x], { axis }: { axis: number[] }) {

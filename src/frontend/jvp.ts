@@ -12,11 +12,13 @@ import {
   compare,
   CompareOp,
   cos,
+  exp,
   flattenFun,
   flip,
   fullRaise,
   idiv,
   less,
+  log,
   max,
   min,
   neg,
@@ -122,6 +124,15 @@ const jvpRules: Record<Primitive, JvpRule> = {
   },
   [Primitive.Cos]([x], [dx]) {
     return [[cos(x.ref)], [neg(sin(x)).mul(dx)]];
+  },
+  [Primitive.Exp]([x], [dx]) {
+    // d(exp(x)) = exp(x) * dx
+    const z = exp(x);
+    return [[z.ref], [z.mul(dx)]];
+  },
+  [Primitive.Log]([x], [dx]) {
+    // d(log(x)) = 1/x * dx
+    return [[log(x.ref)], [reciprocal(x).mul(dx)]];
   },
   [Primitive.Min]([x, y], [dx, dy]) {
     return [[min(x.ref, y.ref)], [where(less(y, x), dy, dx)]];

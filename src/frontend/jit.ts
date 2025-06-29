@@ -377,6 +377,8 @@ const jitRules: Partial<Record<Primitive, JitRule>> = {
   [Primitive.Reciprocal]: broadcastedJit(([a]) => AluExp.reciprocal(a)),
   [Primitive.Sin]: broadcastedJit(([a]) => AluExp.sin(a)),
   [Primitive.Cos]: broadcastedJit(([a]) => AluExp.cos(a)),
+  [Primitive.Exp]: broadcastedJit(([a]) => AluExp.exp(a)),
+  [Primitive.Log]: broadcastedJit(([a]) => AluExp.log(a)),
   [Primitive.Min]: broadcastedJit(([a, b]) => AluExp.min(a, b)),
   [Primitive.Max]: broadcastedJit(([a, b]) => AluExp.max(a, b)),
   [Primitive.ReduceSum](nargs, [a], [as], { axis }: { axis: number[] }) {

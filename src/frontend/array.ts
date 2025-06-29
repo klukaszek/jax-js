@@ -578,6 +578,12 @@ export class Array extends Tracer {
       [Primitive.Cos]([x]) {
         return [x.#unary(AluOp.Cos)];
       },
+      [Primitive.Exp]([x]) {
+        return [x.#unary(AluOp.Exp)];
+      },
+      [Primitive.Log]([x]) {
+        return [x.#unary(AluOp.Log)];
+      },
       [Primitive.Min]([x, y]) {
         return [x.#binary(AluOp.Min, y)];
       },

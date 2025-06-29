@@ -537,4 +537,69 @@ suite.each(devices)("device:%s", (device) => {
       expect(w.js()).toBeAllclose([0.25, 0.4, 0.5]);
     });
   });
+
+  suite("jax.numpy.exp()", () => {
+    test("computes element-wise exponential", () => {
+      const x = np.array([1, 2, 3]);
+      const y = np.exp(x);
+      expect(y.js()).toBeAllclose([Math.E, Math.E ** 2, Math.E ** 3]);
+    });
+
+    test("works with jvp", () => {
+      const x = np.array([1, 2, 3]);
+      const [y, dy] = jvp((x: np.Array) => np.exp(x), [x], [np.ones([3])]);
+      expect(y.js()).toBeAllclose([Math.E, Math.E ** 2, Math.E ** 3]);
+      expect(dy.js()).toBeAllclose([Math.E, Math.E ** 2, Math.E ** 3]);
+    });
+
+    test("can be used in grad", () => {
+      const x = np.array([1, 2, 3]);
+      const dx = grad((x: np.Array) => np.exp(x).sum())(x);
+      expect(dx.js()).toBeAllclose([Math.E, Math.E ** 2, Math.E ** 3]);
+    });
+
+    test("exp2(10) = 1024", () => {
+      const x = np.exp2(10);
+      expect(x.js()).toBeCloseTo(1024);
+    });
+
+    test("exp2(0) = 1", () => {
+      const x = np.exp2(0);
+      expect(x.js()).toBeCloseTo(1);
+    });
+  });
+
+  suite("jax.numpy.log()", () => {
+    test("computes element-wise natural logarithm", () => {
+      const x = np.array([1, Math.E, Math.E ** 2]);
+      const y = np.log(x);
+      expect(y.js()).toBeAllclose([0, 1, 2]);
+    });
+
+    test("works with jvp", () => {
+      const x = np.array([1, Math.E, Math.E ** 2]);
+      const [y, dy] = jvp((x: np.Array) => np.log(x), [x], [np.ones([3])]);
+      expect(y.js()).toBeAllclose([0, 1, 2]);
+      expect(dy.js()).toBeAllclose([1, 1 / Math.E, 1 / Math.E ** 2]);
+    });
+
+    test("can be used in grad", () => {
+      const x = np.array([1, Math.E, Math.E ** 2]);
+      const dx = grad((x: np.Array) => np.log(x).sum())(x);
+      expect(dx.js()).toBeAllclose([1, 1 / Math.E, 1 / Math.E ** 2]);
+    });
+
+    test("log2 and log10", () => {
+      const x = np.array([1, 2, 4, 8]);
+      const y2 = np.log2(x.ref);
+      const y10 = np.log10(x);
+      expect(y2.js()).toBeAllclose([0, 1, 2, 3]);
+      expect(y10.js()).toBeAllclose([
+        0,
+        Math.log10(2),
+        Math.log10(4),
+        Math.log10(8),
+      ]);
+    });
+  });
 });

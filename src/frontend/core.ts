@@ -16,6 +16,8 @@ export enum Primitive {
   Reciprocal = "reciprocal",
   Sin = "sin",
   Cos = "cos",
+  Exp = "exp",
+  Log = "log",
   Min = "min",
   Max = "max",
   ReduceSum = "reduce_sum",
@@ -63,6 +65,14 @@ export function sin(x: TracerValue) {
 
 export function cos(x: TracerValue) {
   return bind1(Primitive.Cos, [x]);
+}
+
+export function exp(x: TracerValue) {
+  return bind1(Primitive.Exp, [x]);
+}
+
+export function log(x: TracerValue) {
+  return bind1(Primitive.Log, [x]);
 }
 
 export function min(x: TracerValue, y: TracerValue) {

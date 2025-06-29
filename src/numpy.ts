@@ -73,6 +73,10 @@ export const reciprocal = core.reciprocal as (x: ArrayLike) => Array;
 export const sin = core.sin as (x: ArrayLike) => Array;
 /** Element-wise cosine function (takes radians). */
 export const cos = core.cos as (x: ArrayLike) => Array;
+/** Calculate the exponential of all elements in the input array. */
+export const exp = core.exp as (x: ArrayLike) => Array;
+/** Calculate the natural logarithm of all elements in the input array. */
+export const log = core.log as (x: ArrayLike) => Array;
 /** Return element-wise minimum of the input arrays. */
 export const minimum = core.min as (x: ArrayLike, y: ArrayLike) => Array;
 /** Return element-wise maximum of the input arrays. */
@@ -411,4 +415,19 @@ export const divide = trueDivide;
 /** Round input to the nearest integer towards zero. */
 export function trunc(x: ArrayLike): Array {
   return core.idiv(x, 1) as Array; // Integer division truncates the decimal part.
+}
+
+/** Calculate `2**p` for all p in the input array. */
+export function exp2(p: ArrayLike): Array {
+  return exp(multiply(p, Math.LN2));
+}
+
+/** Return the base-2 logarithm of x, element-wise. */
+export function log2(x: ArrayLike): Array {
+  return log(x).mul(Math.LOG2E);
+}
+
+/** Return the base-10 logarithm of x, element-wise. */
+export function log10(x: ArrayLike): Array {
+  return log(x).mul(Math.LOG10E);
 }
