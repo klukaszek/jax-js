@@ -24,7 +24,7 @@
       >JAX</a
     >-style, high-performance CPU and GPU kernels to JavaScript. Run neural
     networks, image algorithms, simulations, and all sorts of other numerical
-    applications without leaving the browser.
+    applications without leaving the frontend web.
   </p>
 
   <div class="mb-6 grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-4">
@@ -47,7 +47,7 @@
     <code>jax-js</code> is likely the most portable ML framework, since it runs
     anywhere a browser can run (Chrome, Firefox, Safari, iOS, and Android). It's
     also simple but optimized, including a JIT compiler and GPU kernel scheduler
-    based on a pared-down version of
+    based on the intermediate representation of
     <a href="https://github.com/tinygrad/tinygrad" target="_blank" class="link"
       >tinygrad</a
     >.
@@ -61,7 +61,7 @@
   </div>
 
   <p class="mb-6">
-    The built-in compiler lets it achieve best-in-class performance on the web.
+    This built-in compiler achieves best-in-class performance on the web.
     <code>jax-js</code> compiles math into optimized WebAssembly, WebGL, and
     WebGPU code on modern browsers. It is up to 5x faster than other browser ML
     frameworks like
