@@ -491,4 +491,47 @@ suite.each(devices)("device:%s", (device) => {
       expect(dz.js()).toEqual([0, 0, 1]);
     });
   });
+
+  suite("jax.numpy.absolute()", () => {
+    test("computes absolute value", () => {
+      const x = np.array([-1, 2, -3]);
+      const y = np.absolute(x.ref);
+      expect(y.js()).toEqual([1, 2, 3]);
+
+      const z = np.abs(x); // Alias for absolute
+      expect(z.js()).toEqual([1, 2, 3]);
+    });
+  });
+
+  suite("jax.numpy.reciprocal()", () => {
+    test("computes element-wise reciprocal", () => {
+      const x = np.array([1, 2, 3]);
+      const y = np.reciprocal(x);
+      expect(y.js()).toBeAllclose([1, 0.5, 1 / 3]);
+    });
+
+    test("works with jvp", () => {
+      const x = np.array([1, 2, 3]);
+      const [y, dy] = jvp(
+        (x: np.Array) => np.reciprocal(x),
+        [x],
+        [np.ones([3])],
+      );
+      expect(y).toBeAllclose([1, 0.5, 1 / 3]);
+      expect(dy).toBeAllclose([-1, -0.25, -1 / 9]);
+    });
+
+    test("can be used in grad", () => {
+      const x = np.array([1, 2, 3]);
+      const dx = grad((x: np.Array) => np.reciprocal(x).sum())(x);
+      expect(dx).toBeAllclose([-1, -0.25, -1 / 9]);
+    });
+
+    test("called via Array.div()", () => {
+      const x = np.array([1, 2, 3]);
+      const y = np.array([4, 5, 6]);
+      const z = x.div(y);
+      expect(z).toBeAllclose([0.25, 0.4, 0.5]);
+    });
+  });
 });

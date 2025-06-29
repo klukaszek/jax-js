@@ -670,6 +670,7 @@ export const abstractEvalRules: Record<Primitive, AbstractEvalRule> = {
   [Primitive.Add]: binopAbstractEval,
   [Primitive.Mul]: binopAbstractEval,
   [Primitive.Neg]: vectorizedUnopAbstractEval,
+  [Primitive.Reciprocal]: vectorizedUnopAbstractEval,
   [Primitive.Sin]: vectorizedUnopAbstractEval,
   [Primitive.Cos]: vectorizedUnopAbstractEval,
   [Primitive.Min]: binopAbstractEval,

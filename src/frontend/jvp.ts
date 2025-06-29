@@ -21,6 +21,7 @@ import {
   neg,
   newMain,
   Primitive,
+  reciprocal,
   reduceSum,
   reshape,
   sin,
@@ -104,6 +105,11 @@ const jvpRules: Record<Primitive, JvpRule> = {
   [Primitive.Neg]([x], [dx]) {
     return [[x.neg()], [dx.neg()]];
   },
+  [Primitive.Reciprocal]([x], [dx]) {
+    // d(1/x) = -x^-2 * dx
+    const xRecip = reciprocal(x.ref);
+    return [[xRecip.ref], [neg(xRecip.ref.mul(xRecip)).mul(dx)]];
+  },
   [Primitive.Sin]([x], [dx]) {
     return [[sin(x.ref)], [cos(x).mul(dx)]];
   },
@@ -111,10 +117,10 @@ const jvpRules: Record<Primitive, JvpRule> = {
     return [[cos(x.ref)], [neg(sin(x)).mul(dx)]];
   },
   [Primitive.Min]([x, y], [dx, dy]) {
-    return [[min(x.ref, y.ref)], [where(less(x, y), dx, dy)]];
+    return [[min(x.ref, y.ref)], [where(less(y, x), dy, dx)]];
   },
   [Primitive.Max]([x, y], [dx, dy]) {
-    return [[max(x.ref, y.ref)], [where(less(x, y), dy, dx)]];
+    return [[max(x.ref, y.ref)], [where(less(y, x), dx, dy)]];
   },
   [Primitive.ReduceSum]([x], [dx], { axis }: { axis: number[] }) {
     return [[reduceSum(x, axis)], [reduceSum(dx, axis)]];

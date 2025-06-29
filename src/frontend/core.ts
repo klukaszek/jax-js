@@ -12,6 +12,7 @@ export enum Primitive {
   Add = "add",
   Mul = "mul",
   Neg = "neg",
+  Reciprocal = "reciprocal",
   Sin = "sin",
   Cos = "cos",
   Min = "min",
@@ -45,6 +46,10 @@ export function mul(x: TracerValue, y: TracerValue) {
 
 export function neg(x: TracerValue) {
   return bind1(Primitive.Neg, [x]);
+}
+
+export function reciprocal(x: TracerValue) {
+  return bind1(Primitive.Reciprocal, [x]);
 }
 
 export function sin(x: TracerValue) {
@@ -327,7 +332,12 @@ export abstract class Tracer {
 
   /** Subtract an array from this one. */
   sub(other: this | TracerValue): this {
-    return this.add(neg(other)) as this;
+    return this.add(neg(other));
+  }
+
+  /** Divide an array by this one. */
+  div(other: this | TracerValue): this {
+    return this.mul(reciprocal(other));
   }
 
   /** Return specified diagonals. See `numpy.diagonal` for full docs. */

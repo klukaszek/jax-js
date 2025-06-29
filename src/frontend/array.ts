@@ -38,6 +38,11 @@ const JsArray = globalThis.Array;
 // Don't realize expression arrays smaller than this size.
 const inlineArrayLimit = 1000;
 
+export type ArrayLike = Array | number | boolean;
+
+/** Version of pureArray with fudged types. */
+export const fudgeArray = pureArray as (x: ArrayLike) => Array;
+
 /**
  * An executable operation that will be dispatched to the backend.
  *
@@ -560,6 +565,9 @@ export class Array extends Tracer {
       },
       [Primitive.Neg]([x]) {
         return [zerosLike(x).#binary(AluOp.Sub, x)];
+      },
+      [Primitive.Reciprocal]([x]) {
+        return [x.#unary(AluOp.Reciprocal)];
       },
       [Primitive.Sin]([x]) {
         return [x.#unary(AluOp.Sin)];

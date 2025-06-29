@@ -3,12 +3,13 @@ import {
   arange,
   array,
   Array,
+  type ArrayLike,
   eye,
+  fudgeArray,
   full,
   identity,
   linspace,
   ones,
-  pureArray,
   scalar,
   zeros,
 } from "./frontend/array";
@@ -20,6 +21,7 @@ import { deepEqual, prod, range, rep } from "./utils";
 export {
   arange,
   Array,
+  type ArrayLike,
   array,
   DType,
   eye,
@@ -59,14 +61,14 @@ export const pi = Math.PI;
 // current stack of interpreters. But we hide that away from users to mimic
 // JAX's composable tracing transformations.
 
-export type ArrayLike = Array | number | boolean;
-
 /** Element-wise addition, with broadcasting. */
 export const add = core.add as (x: ArrayLike, y: ArrayLike) => Array;
 /** Element-wise multiplication, with broadcasting. */
 export const multiply = core.mul as (x: ArrayLike, y: ArrayLike) => Array;
 /** Numerical negative of every element of an array. */
 export const negative = core.neg as (x: ArrayLike) => Array;
+/** Calculate element-wise reciprocal of the input. This is `1/x`. */
+export const reciprocal = core.reciprocal as (x: ArrayLike) => Array;
 /** Element-wise sine function (takes radians). */
 export const sin = core.sin as (x: ArrayLike) => Array;
 /** Element-wise cosine function (takes radians). */
@@ -169,9 +171,6 @@ export function fliplr(x: ArrayLike): Array {
 
 // Alternate or equivalent names for functions, from numpy.
 export const permuteDims = transpose;
-
-// Version of pureArray with fudged types.
-const fudgeArray = pureArray as (x: ArrayLike) => Array;
 
 /** Return a 1-D flattened array containing the elements of the input. */
 export function ravel(a: ArrayLike): Array {
@@ -367,3 +366,16 @@ export function clip(a: ArrayLike, min?: ArrayLike, max?: ArrayLike): Array {
   }
   return a; // No clipping, just return the original array.
 }
+
+/**
+ * Calculate the absolute value element-wise.
+ *
+ * This is the same function as `jax.numpy.abs()`.
+ */
+export function absolute(x: ArrayLike): Array {
+  x = fudgeArray(x);
+  return where(less(x.ref, 0), x.ref.mul(-1), x);
+}
+
+/** Alias of `jax.numpy.absolute()`. */
+export const abs = absolute;

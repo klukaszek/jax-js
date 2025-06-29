@@ -373,6 +373,7 @@ const jitRules: Partial<Record<Primitive, JitRule>> = {
   [Primitive.Neg]: broadcastedJit(([a]) =>
     AluExp.sub(AluExp.const(a.dtype, 0), a),
   ),
+  [Primitive.Reciprocal]: broadcastedJit(([a]) => AluExp.reciprocal(a)),
   [Primitive.Sin]: broadcastedJit(([a]) => AluExp.sin(a)),
   [Primitive.Cos]: broadcastedJit(([a]) => AluExp.cos(a)),
   [Primitive.Min]: broadcastedJit(([a, b]) => AluExp.min(a, b)),

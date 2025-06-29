@@ -24,4 +24,19 @@ suite.each(devices)("device:%s", (device) => {
       expect(gx.js()).toEqual([0, 0, 1, 1]);
     });
   });
+
+  suite("jax.nn.softsign()", () => {
+    test("should compute softsign", () => {
+      const x = np.array([-1, 0, 1, 2]);
+      const y = nn.softsign(x);
+      expect(y).toBeAllclose([-0.5, 0, 0.5, 2 / 3]);
+    });
+
+    test("should compute softsign gradient", () => {
+      const x = np.array([-10, -1, 1, 2]);
+      const gradFn = grad((x: np.Array) => nn.softsign(x).sum());
+      const gx = gradFn(x);
+      expect(gx).toBeAllclose([1 / 121, 1 / 4, 1 / 4, 1 / 9]);
+    });
+  });
 });
