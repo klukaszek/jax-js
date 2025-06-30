@@ -626,7 +626,9 @@ const transposeRules: Partial<{ [P in Primitive]: TransposeRule<P> }> = {
     if (op === AluOp.Add) {
       return [broadcast(ct, x.aval.shape, axis)];
     } else {
-      throw new Error(`transpose rule not implemented for reduce op: ${op}`);
+      // Forward-mode jvp of product does not involve any products.
+      // Ditto for min() or max().
+      throw new NonlinearError(Primitive.Reduce);
     }
   },
   // BUG: Doesn't handle broadcasting.

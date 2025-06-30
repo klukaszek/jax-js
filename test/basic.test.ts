@@ -38,6 +38,19 @@ suite("jax.jvp()", () => {
     expect(f(x.ref)).toBeAllclose(6);
     expect(jvp(f, [x], [np.array([1, 1, 1])])[1]).toBeAllclose(3);
   });
+
+  test("can compute jvp of products", () => {
+    const x = np.array([1, 2, 3, 4]);
+
+    const jvpProd = jvp(
+      (x: np.Array) => np.prod(x),
+      [x],
+      [np.array([1, 10, 100, 1000])],
+    );
+    expect(jvpProd[0]).toBeAllclose(24);
+    // 1 * 2*3*4 + 10 * 1*3*4 + 100 * 1*2*4 + 1000 * 1*2*3
+    expect(jvpProd[1]).toBeAllclose(6944);
+  });
 });
 
 suite("jax.vmap()", () => {

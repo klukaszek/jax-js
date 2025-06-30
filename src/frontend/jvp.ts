@@ -144,6 +144,14 @@ const jvpRules: { [P in Primitive]: JvpRule<P> } = {
   [Primitive.Reduce]([x], [dx], { op, axis }) {
     if (op === AluOp.Add) {
       return [[reduce(x, op, axis)], [reduce(dx, op, axis)]];
+    } else if (op === AluOp.Mul) {
+      // Multivariate product rule: (abc)'/abc = a'/a + b'/b + c'/c
+      const primal = reduce(x.ref, op, axis);
+      const tangent = broadcast(primal.ref, x.shape, axis)
+        .mul(reciprocal(x))
+        .mul(dx)
+        .sum(axis);
+      return [[primal], [tangent]];
     } else {
       throw new Error(`JVP rule not implemented for reduce op: ${op}`);
     }

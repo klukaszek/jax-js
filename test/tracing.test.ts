@@ -159,6 +159,12 @@ suite("jax.grad()", () => {
     expect(df(3)).toBeAllclose(-0.077432003);
     expect(ddf(3)).toBeAllclose(0.559854311);
   });
+
+  test("can compute grad of products", () => {
+    const x = np.array([1, 2, 3, 4]);
+    const gradProd = grad((x: np.Array) => np.prod(x))(x);
+    expect(gradProd.js()).toEqual([24, 12, 8, 6]);
+  });
 });
 
 suite("jax.jit()", () => {
