@@ -1,3 +1,4 @@
+import { AluOp } from "../alu";
 import {
   JsTree,
   flatten as treeFlatten,
@@ -25,7 +26,7 @@ import {
   newMain,
   Primitive,
   reciprocal,
-  reduceSum,
+  reduce,
   reshape,
   sin,
   Trace,
@@ -140,8 +141,12 @@ const jvpRules: Record<Primitive, JvpRule> = {
   [Primitive.Max]([x, y], [dx, dy]) {
     return [[max(x.ref, y.ref)], [where(less(y, x), dx, dy)]];
   },
-  [Primitive.ReduceSum]([x], [dx], { axis }: { axis: number[] }) {
-    return [[reduceSum(x, axis)], [reduceSum(dx, axis)]];
+  [Primitive.Reduce]([x], [dx], { op, axis }: { op: AluOp; axis: number[] }) {
+    if (op === AluOp.Add) {
+      return [[reduce(x, op, axis)], [reduce(dx, op, axis)]];
+    } else {
+      throw new Error(`JVP rule not implemented for reduce op: ${op}`);
+    }
   },
   [Primitive.Compare]([x, y], tangents, { op }: { op: CompareOp }) {
     for (const t of tangents) t.dispose();

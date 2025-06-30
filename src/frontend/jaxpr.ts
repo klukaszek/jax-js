@@ -1,4 +1,4 @@
-import { DType } from "../alu";
+import { AluOp, DType } from "../alu";
 import { ArrayLike } from "../numpy";
 import { PPrint } from "../pprint";
 import {
@@ -684,7 +684,7 @@ export const abstractEvalRules: Record<Primitive, AbstractEvalRule> = {
   [Primitive.Log]: vectorizedUnopAbstractEval,
   [Primitive.Min]: binopAbstractEval,
   [Primitive.Max]: binopAbstractEval,
-  [Primitive.ReduceSum]([x], { axis }: { axis: number[] }) {
+  [Primitive.Reduce]([x], { axis }: { op: AluOp; axis: number[] }) {
     const axisSet = new Set(axis);
     const newShape = x.shape.filter((_, i) => !axisSet.has(i));
     return [new ShapedArray(newShape, x.dtype)];

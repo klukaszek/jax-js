@@ -1,6 +1,6 @@
 /** @file Implementations of vjp() and partial evaluation. */
 
-import { DType } from "../alu";
+import { AluOp, DType } from "../alu";
 import { flatten as treeFlatten, unflatten as treeUnflatten } from "../tree";
 import { invertPermutation, partitionList, toposort, unzip2 } from "../utils";
 import { eye, pureArray, scalar, zeros } from "./array";
@@ -17,7 +17,7 @@ import {
   neg,
   newMain,
   Primitive,
-  reduceSum,
+  reduce,
   reshape,
   ShapedArray,
   Trace,
@@ -619,10 +619,13 @@ const transposeRules: Partial<Record<Primitive, TransposeRule>> = {
       ? ((y as Tracer).dispose(), [ct, null])
       : ((x as Tracer).dispose(), [null, ct]);
   },
-  [Primitive.ReduceSum]([ct], [x], { axis }: { axis: number[] }) {
-    if (!(x instanceof UndefPrimal))
-      throw new NonlinearError(Primitive.ReduceSum);
-    return [broadcast(ct, x.aval.shape, axis)];
+  [Primitive.Reduce]([ct], [x], { op, axis }: { op: AluOp; axis: number[] }) {
+    if (!(x instanceof UndefPrimal)) throw new NonlinearError(Primitive.Reduce);
+    if (op === AluOp.Add) {
+      return [broadcast(ct, x.aval.shape, axis)];
+    } else {
+      throw new Error(`transpose rule not implemented for reduce op: ${op}`);
+    }
   },
   // BUG: Doesn't handle broadcasting.
   [Primitive.Where]([ct], [cond, x, y]) {
@@ -655,7 +658,7 @@ const transposeRules: Partial<Record<Primitive, TransposeRule>> = {
   [Primitive.Broadcast]([ct], [x], { axis }: { axis: number[] }) {
     if (!(x instanceof UndefPrimal))
       throw new NonlinearError(Primitive.Broadcast);
-    return [reduceSum(ct, axis)];
+    return [reduce(ct, AluOp.Add, axis)];
   },
   [Primitive.Reshape]([ct], [x], _: { shape: number[] }) {
     if (!(x instanceof UndefPrimal))

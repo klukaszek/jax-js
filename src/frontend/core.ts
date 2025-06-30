@@ -1,6 +1,6 @@
 /** @file Core library internals and interpreter stack, based on Autodidax. */
 
-import { DType } from "../alu";
+import { AluGroup, AluOp, DType } from "../alu";
 import {
   JsTreeDef,
   flatten as treeFlatten,
@@ -20,7 +20,7 @@ export enum Primitive {
   Log = "log",
   Min = "min",
   Max = "max",
-  ReduceSum = "reduce_sum",
+  Reduce = "reduce",
   Compare = "compare",
   Where = "where",
   Transpose = "transpose",
@@ -143,7 +143,10 @@ export function flip(x: TracerValue, axis: number[]) {
   return bind1(Primitive.Flip, [x], { axis });
 }
 
-export function reduceSum(x: TracerValue, axis?: number | number[]) {
+export function reduce(x: TracerValue, op: AluOp, axis?: number | number[]) {
+  if (!AluGroup.Reduce.has(op)) {
+    throw new TypeError(`Invalid reduce operation: ${op}`);
+  }
   if (axis === undefined) {
     if (x instanceof Tracer) {
       axis = range(x.shape.length);
@@ -154,7 +157,7 @@ export function reduceSum(x: TracerValue, axis?: number | number[]) {
   if (typeof axis === "number") {
     axis = [axis];
   }
-  return bind1(Primitive.ReduceSum, [x], { axis });
+  return bind1(Primitive.Reduce, [x], { op, axis });
 }
 
 function bind1(
@@ -336,7 +339,10 @@ export abstract class Tracer {
     return lessEqual(this, other) as this;
   }
   sum(axis?: number | number[]) {
-    return reduceSum(this, axis) as this;
+    return reduce(this, AluOp.Add, axis) as this;
+  }
+  prod(axis?: number | number[]) {
+    return reduce(this, AluOp.Mul, axis) as this;
   }
   transpose(perm?: number[]): this {
     return transpose(this, perm) as this;

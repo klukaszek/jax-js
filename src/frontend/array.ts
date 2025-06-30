@@ -593,9 +593,9 @@ export class Array extends Tracer {
       [Primitive.Max]([x, y]) {
         return [x.#binary(AluOp.Max, y)];
       },
-      [Primitive.ReduceSum]([x], { axis }: { axis: number[] }) {
+      [Primitive.Reduce]([x], { op, axis }: { op: AluOp; axis: number[] }) {
         if (axis.length === 0) return [x];
-        return [x.#moveAxesDown(axis).#reduce(AluOp.Add)];
+        return [x.#moveAxesDown(axis).#reduce(op)];
       },
       [Primitive.Compare]([x, y], { op }: { op: CompareOp }) {
         const custom = ([x, y]: AluExp[]) => aluCompare(x, y, op);

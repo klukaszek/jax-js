@@ -1,4 +1,4 @@
-import { DType, isFloatDtype } from "./alu";
+import { AluOp, DType, isFloatDtype } from "./alu";
 import {
   arange,
   array,
@@ -16,7 +16,7 @@ import {
 import * as core from "./frontend/core";
 import { jit } from "./frontend/jaxpr";
 import * as vmapModule from "./frontend/vmap";
-import { deepEqual, prod, range, rep } from "./utils";
+import { deepEqual, prod as iprod, range, rep } from "./utils";
 
 export {
   arange,
@@ -117,26 +117,35 @@ export const transpose = core.transpose as (
  * length of the array and remaining dimensions.
  */
 export const reshape = core.reshape as (x: ArrayLike, shape: number[]) => Array;
-export const sum = core.reduceSum as (
-  x: ArrayLike,
-  axis?: number | number[],
-) => Array;
 export const moveaxis = vmapModule.moveaxis as (
   x: ArrayLike,
   src: number,
   dst: number,
 ) => Array;
 
-/** Return the number of dimensions of an array. */
+/** Return the number of dimensions of an array. Does not consume array reference. */
 export const ndim = core.ndim as (x: ArrayLike) => number;
 
-/** Return the shape of an array. */
+/** Return the shape of an array. Does not consume array reference. */
 export const shape = core.getShape as (x: ArrayLike) => number[];
 
-/** Return the number of elements in an array, optionally along an axis. */
+/**
+ * Return the number of elements in an array, optionally along an axis.
+ * Does not consume array reference.
+ */
 export function size(a: ArrayLike, axis?: number): number {
   const s = shape(a);
-  return axis === undefined ? prod(s) : s[axis];
+  return axis === undefined ? iprod(s) : s[axis];
+}
+
+/** Sum of the elements of the array over a given axis, or axes. */
+export function sum(a: ArrayLike, axis?: number | number[]): Array {
+  return core.reduce(a, AluOp.Add, axis) as Array;
+}
+
+/** Return product of the array elements over a given axis. */
+export function prod(a: ArrayLike, axis?: number | number[]): Array {
+  return core.reduce(a, AluOp.Mul, axis) as Array;
 }
 
 /** Reverse the elements in an array along the given axes. */

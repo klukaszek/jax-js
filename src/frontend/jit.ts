@@ -381,7 +381,12 @@ const jitRules: Partial<Record<Primitive, JitRule>> = {
   [Primitive.Log]: broadcastedJit(([a]) => AluExp.log(a)),
   [Primitive.Min]: broadcastedJit(([a, b]) => AluExp.min(a, b)),
   [Primitive.Max]: broadcastedJit(([a, b]) => AluExp.max(a, b)),
-  [Primitive.ReduceSum](nargs, [a], [as], { axis }: { axis: number[] }) {
+  [Primitive.Reduce](
+    nargs,
+    [a],
+    [as],
+    { op, axis }: { op: AluOp; axis: number[] },
+  ) {
     const keptAxes: number[] = [];
     const shiftedAxes: number[] = [];
     const newShape: number[] = [];
@@ -408,7 +413,7 @@ const jitRules: Partial<Record<Primitive, JitRule>> = {
       }
     });
 
-    const reduction = new Reduction(a.dtype, AluOp.Add, reductionSize);
+    const reduction = new Reduction(a.dtype, op, reductionSize);
     return new Kernel(nargs, size, a, reduction);
   },
   [Primitive.Compare]: broadcastedJit(([a, b], { op }: { op: CompareOp }) => {
@@ -472,7 +477,7 @@ function splitGraphDataflow(backend: Backend, jaxpr: Jaxpr): Set<Var> {
   for (let i = jaxpr.eqns.length - 1; i >= 0; i--) {
     const eqn = jaxpr.eqns[i];
     if (
-      eqn.primitive === Primitive.ReduceSum ||
+      eqn.primitive === Primitive.Reduce ||
       eqn.outBinders.some((v) => blackNodes.has(v))
     ) {
       for (const v of eqn.outBinders) {

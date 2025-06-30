@@ -21,7 +21,7 @@ import {
   newMain,
   Primitive,
   reciprocal,
-  reduceSum,
+  reduce,
   ShapedArray,
   sin,
   Trace,
@@ -38,6 +38,7 @@ import {
 } from "../tree";
 import { Jaxpr, jaxprAsFun, makeJaxpr } from "./jaxpr";
 import { jvp } from "./jvp";
+import { AluOp } from "../alu";
 
 function mappedAval(batchDim: number, aval: AbstractValue) {
   const shape = [...aval.shape];
@@ -223,13 +224,18 @@ const vmapRules: Partial<Record<Primitive, VmapRule>> = {
   [Primitive.Log]: vectorizedUnopBatchingRule(log),
   [Primitive.Min]: broadcastBatcher(min),
   [Primitive.Max]: broadcastBatcher(max),
-  [Primitive.ReduceSum](axisSize, [x], [xBdim], { axis }: { axis: number[] }) {
+  [Primitive.Reduce](
+    axisSize,
+    [x],
+    [xBdim],
+    { op, axis }: { op: AluOp; axis: number[] },
+  ) {
     if (xBdim === null) {
-      return [[reduceSum(x, axis)], [null]];
+      return [[reduce(x, op, axis)], [null]];
     }
     const newAxis = axis.map((ax) => ax + (xBdim <= ax ? 1 : 0));
     const outBdim = xBdim - axis.filter((ax) => ax < xBdim).length;
-    return [[reduceSum(x, newAxis)], [outBdim]];
+    return [[reduce(x, op, newAxis)], [outBdim]];
   },
   [Primitive.Compare](axisSize, args, dims, { op }: { op: CompareOp }) {
     return broadcastBatcher((x, y) => compare(x, y, op))(axisSize, args, dims);
