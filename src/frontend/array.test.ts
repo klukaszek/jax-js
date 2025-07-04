@@ -150,4 +150,13 @@ suite.each(devices)("device:%s", (device) => {
 
     x.dispose();
   });
+
+  test("sum along negative axis", () => {
+    const x = array([
+      [1, 2, 3],
+      [4, 5, 6],
+    ]);
+    expect(x.ref.sum(-1).js()).toEqual([6, 15]);
+    expect(x.sum(-2).js()).toEqual([5, 7, 9]);
+  });
 });

@@ -16,7 +16,7 @@ import {
 import * as core from "./frontend/core";
 import { jit } from "./frontend/jaxpr";
 import * as vmapModule from "./frontend/vmap";
-import { deepEqual, prod as iprod, range, rep } from "./utils";
+import { checkAxis, deepEqual, prod as iprod, range, rep } from "./utils";
 
 export {
   arange,
@@ -181,17 +181,170 @@ export function flip(x: ArrayLike, axis?: number | number[]): Array {
   const seen = new Set<number>();
   for (let i = 0; i < axis.length; i++) {
     if (axis[i] >= nd || axis[i] < -nd) {
-      throw new TypeError(
+      throw new Error(
         `flip: axis ${axis[i]} out of bounds for array of ${nd} dimensions`,
       );
     }
     if (axis[i] < 0) axis[i] += nd; // convert negative to positive
     if (seen.has(axis[i])) {
-      throw new TypeError(`flip: duplicate axis ${axis[i]} in axis list`);
+      throw new Error(`flip: duplicate axis ${axis[i]} in axis list`);
     }
     seen.add(axis[i]);
   }
   return core.flip(x, axis) as Array;
+}
+
+/**
+ * Join a sequence of arrays along an existing axis.
+ *
+ * The arrays must have the same shape, except in the dimension corresponding to
+ * `axis` (the first, by default).
+ *
+ * No scalars can be passed to this function, as the axis is then ambiguous.
+ */
+export function concatenate(xs: Array[], axis: number = 0) {
+  if (xs.length === 0) {
+    throw new Error("Need at least one array to concatenate");
+  }
+  const shapes = xs.map(shape);
+  axis = checkAxis(axis, shapes[0].length);
+  for (let i = 1; i < shapes.length; i++) {
+    if (
+      shapes[i].length !== shapes[0].length ||
+      !shapes[i].every((d, j) => j === axis || d === shapes[0][j])
+    ) {
+      throw new Error(
+        `Cannot concatenate arrays with shapes ${JSON.stringify(shapes)} along axis ${axis}`,
+      );
+    }
+  }
+  const makePadAxis = (start: number, end: number): [number, number][] =>
+    shapes[0].map((_, i) => (i === axis ? [start, end] : [0, 0]));
+  let result = xs[0];
+  for (let i = 1; i < xs.length; i++) {
+    const len1 = result.shape[axis];
+    const len2 = shapes[i][axis];
+    // Concatenate arrays by padding with zeros and adding them together.
+    result = pad(result, makePadAxis(0, len2)).add(
+      pad(xs[i], makePadAxis(len1, 0)),
+    );
+  }
+  return result;
+}
+
+/**
+ * Join a sequence of arrays along a new axis.
+ *
+ * The `axis` parameter specifies the index of the new axis in the dimensions of
+ * the result. For example, if `axis=0` it will be the first dimension and if
+ * `axis=-1` it will be the last dimension.
+ *
+ * All shapes must have the same shape.
+ */
+export function stack(xs: ArrayLike[], axis: number = 0) {
+  if (xs.length === 0) {
+    throw new Error("Need at least one array to stack");
+  }
+  const shapes = xs.map((x) => shape(x));
+  if (!shapes.every((s) => deepEqual(s, shapes[0]))) {
+    throw new Error(
+      `Cannot stack arrays with different shapes: ${JSON.stringify(shapes)}`,
+    );
+  }
+  axis = checkAxis(axis, shapes[0].length + 1); // +1 for the new axis
+  const newShape = shapes[0].toSpliced(axis, 0, 1);
+  const newArrays = xs.map((x) => fudgeArray(x).reshape(newShape));
+  return concatenate(newArrays, axis) as Array;
+}
+
+/**
+ * Horizontally stack arrays. Inputs are promoted to rank at least 1, then
+ * concatenated along axis 1 (if rank-2 or higher) or 0 (if rank-1).
+ */
+export function hstack(xs: ArrayLike[]): Array {
+  if (xs.length === 0) {
+    throw new Error("Need at least one array to hstack");
+  }
+  const nds = xs.map(ndim);
+  if (nds.some((n) => n !== nds[0])) {
+    throw new Error(`Cannot stack different ranks: ${JSON.stringify(nds)}`);
+  }
+  if (nds[0] === 0) {
+    return stack(xs); // Rank-0 arrays become rank-1
+  } else if (nds[0] === 1) {
+    return concatenate(xs as Array[]); // Rank-1 arrays become rank-1
+  } else {
+    // Rank-2 or higher arrays are concatenated along axis 1
+    return concatenate(xs as Array[], 1);
+  }
+}
+
+/**
+ * Vertically stack arrays. Inputs are promoted to rank at least 2, then
+ * concatenated along axis 0.
+ */
+export function vstack(xs: ArrayLike[]): Array {
+  if (xs.length === 0) {
+    throw new Error("Need at least one array to vstack");
+  }
+  const nds = xs.map(ndim);
+  if (nds.some((n) => n !== nds[0])) {
+    throw new Error(`Cannot stack different ranks: ${JSON.stringify(nds)}`);
+  }
+  if (nds[0] === 0) {
+    return stack(xs).reshape([-1, 1]); // Rank-0 arrays become rank-2
+  } else if (nds[0] === 1) {
+    return stack(xs); // Rank-1 arrays become rank-2
+  } else {
+    // Rank-2 or higher arrays are concatenated along axis 0
+    return concatenate(xs as Array[]);
+  }
+}
+
+/**
+ * Stack arrays depth-wise. Inputs are promoted to rank at least 3, then
+ * concatenated along axis 2.
+ */
+export function dstack(xs: ArrayLike[]): Array {
+  if (xs.length === 0) {
+    throw new Error("Need at least one array to dstack");
+  }
+  const nds = xs.map(ndim);
+  if (nds.some((n) => n !== nds[0])) {
+    throw new Error(`Cannot stack different ranks: ${JSON.stringify(nds)}`);
+  }
+  if (nds[0] === 0) {
+    return stack(xs).reshape([1, 1, -1]); // Rank-0 arrays become rank-3
+  } else if (nds[0] === 1) {
+    const ret = stack(xs, -1); // Tricky!
+    return ret.reshape([1, ...ret.shape]);
+  } else if (nds[0] === 2) {
+    return stack(xs, -1);
+  } else {
+    return concatenate(xs as Array[], 2);
+  }
+}
+
+/**
+ * Stack arrays column-wise. Inputs are promoted to rank at least 2, then
+ * concatenated along axis 1.
+ */
+export function columnStack(xs: ArrayLike[]): Array {
+  if (xs.length === 0) {
+    throw new Error("Need at least one array to columnStack");
+  }
+  const nds = xs.map(ndim);
+  if (nds.some((n) => n !== nds[0])) {
+    throw new Error(`Cannot stack different ranks: ${JSON.stringify(nds)}`);
+  }
+  if (nds[0] === 0) {
+    return stack(xs).reshape([1, -1]); // Rank-0 arrays become rank-2
+  } else if (nds[0] === 1) {
+    return stack(xs, -1); // Rank-1 arrays become rank-2
+  } else {
+    // Rank-2 or higher arrays are concatenated along axis 1
+    return concatenate(xs as Array[], 1);
+  }
 }
 
 /** Flip an array vertically (axis=0). */
@@ -227,14 +380,6 @@ export function diagonal(
   axis2?: number,
 ): Array {
   return fudgeArray(a).diagonal(offset, axis1, axis2);
-}
-
-/** Transposes a matrix or stack of matrices `x` (swap last two axes). */
-export function matrixTranspose(x: ArrayLike): Array {
-  const ar = fudgeArray(x);
-  if (ar.ndim < 2)
-    throw new TypeError("matrixTranspose only supports 2D+ arrays");
-  return ar.transpose([...range(ar.ndim - 2), ar.ndim - 1, ar.ndim - 2]);
 }
 
 /**

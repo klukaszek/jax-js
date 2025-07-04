@@ -6,9 +6,20 @@ import {
   flatten as treeFlatten,
   unflatten as treeUnflatten,
 } from "../tree";
-import { DEBUG, isNumberPair, prod, range, rep } from "../utils";
+import { checkAxis, DEBUG, isNumberPair, prod, range, rep } from "../utils";
 import type { Jaxpr } from "./jaxpr";
 
+/**
+ * Frontend primitive operations, which are lowered into Kernel objects before
+ * being dispatched to the backend.
+ *
+ * Any operation between arrays can be described in these parts. This is also
+ * the set of primitives that can occur in Jaxpr programs, and the level at
+ * which transformations like vmap, grad, and jvp occur. They are loosely based
+ * on [XLA](https://openxla.org/xla/operation_semantics).
+ *
+ * All n-ary operations support broadcasting, with NumPy semantics.
+ */
 export enum Primitive {
   Add = "add",
   Mul = "mul",
@@ -139,11 +150,14 @@ export function where(cond: TracerValue, x: TracerValue, y: TracerValue) {
 }
 
 export function transpose(x: TracerValue, perm?: number[]) {
-  perm = perm ?? range(ndim(x)).reverse();
+  perm = perm
+    ? perm.map((a) => checkAxis(a, ndim(x)))
+    : range(ndim(x)).reverse();
   return bind1(Primitive.Transpose, [x], { perm });
 }
 
 export function broadcast(x: TracerValue, shape: number[], axis: number[]) {
+  axis = axis.map((a) => checkAxis(a, shape.length));
   return bind1(Primitive.Broadcast, [x], { shape, axis });
 }
 
@@ -154,14 +168,14 @@ export function reshape(x: TracerValue, shape: number | number[]) {
   if (autoIdx !== -1) {
     const remaining = prod(originalShape) / -prod(shape);
     if (!Number.isInteger(remaining) || remaining < 0) {
-      throw new TypeError(
+      throw new Error(
         `Invalid reshape: ${JSON.stringify(originalShape)} -> ${JSON.stringify(shape)}`,
       );
     }
     shape = shape.toSpliced(autoIdx, 1, remaining);
   }
   if (prod(originalShape) !== prod(shape)) {
-    throw new TypeError(
+    throw new Error(
       `Invalid reshape: ${JSON.stringify(originalShape)} -> ${JSON.stringify(shape)}`,
     );
   }
@@ -169,23 +183,24 @@ export function reshape(x: TracerValue, shape: number | number[]) {
 }
 
 export function flip(x: TracerValue, axis: number[]) {
+  axis = axis.map((a) => checkAxis(a, ndim(x)));
   return bind1(Primitive.Flip, [x], { axis });
 }
 
 export function shrink(x: TracerValue, slice: [number, number][]) {
   const shape = getShape(x);
   if (!Array.isArray(slice) || !slice.every(isNumberPair)) {
-    throw new TypeError(`Invalid shrink() type: ${JSON.stringify(slice)}`);
+    throw new Error(`Invalid shrink() type: ${JSON.stringify(slice)}`);
   }
   if (slice.length !== shape.length) {
-    throw new TypeError(
+    throw new Error(
       `Invalid shrink(): expected ${shape.length} axes, got ${slice.length}`,
     );
   }
   for (let i = 0; i < shape.length; i++) {
     const [start, end] = slice[i];
     if (start > end || start < 0 || end > shape[i]) {
-      throw new TypeError(
+      throw new Error(
         `Invalid shrink() slice for axis ${i}: [${start}, ${end}] on shape ${shape[i]}`,
       );
     }
@@ -209,9 +224,7 @@ export function pad(
     const [w0, w1] = width[0]; // A single pair should be repeated for all axes.
     width = rep(nd, () => [w0, w1] as [number, number]);
   } else if (width.length !== nd) {
-    throw new TypeError(
-      `Invalid pad(): expected ${nd} axes, got ${width.length}`,
-    );
+    throw new Error(`Invalid pad(): expected ${nd} axes, got ${width.length}`);
   }
   return bind1(Primitive.Pad, [x], { width });
 }
@@ -226,9 +239,10 @@ export function reduce(x: TracerValue, op: AluOp, axis?: number | number[]) {
     } else {
       axis = [];
     }
-  }
-  if (typeof axis === "number") {
-    axis = [axis];
+  } else if (typeof axis === "number") {
+    axis = [checkAxis(axis, ndim(x))];
+  } else {
+    axis = axis.map((a) => checkAxis(a, ndim(x)));
   }
   return bind1(Primitive.Reduce, [x], { op, axis });
 }
@@ -443,8 +457,7 @@ export abstract class Tracer {
   diagonal(offset = 0, axis1 = 0, axis2 = 1): this {
     if (!Number.isInteger(offset))
       throw new TypeError(`offset must be an integer, got ${offset}`);
-    if (axis1 === axis2)
-      throw new TypeError("axis1 and axis2 must not be equal");
+    if (axis1 === axis2) throw new Error("axis1 and axis2 must not be equal");
     // TODO: This is possible on the forward pass, but we need a custom JVP
     // rule, so build it out of other primitives later.
     throw new Error("diagonal not implemented");

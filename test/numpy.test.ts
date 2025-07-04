@@ -225,18 +225,6 @@ suite.each(devices)("device:%s", (device) => {
     });
   });
 
-  suite("jax.numpy.matrixTranspose()", () => {
-    test("throws TypeError on 1D array", () => {
-      const x = np.zeros([20]);
-      expect(() => np.matrixTranspose(x)).toThrow(TypeError);
-    });
-
-    test("transposes a stack of matrices", () => {
-      const x = np.zeros([5, 60, 7]);
-      expect(np.matrixTranspose(x).shape).toEqual([5, 7, 60]);
-    });
-  });
-
   suite("jax.numpy.reshape()", () => {
     test("reshapes a 1D array", () => {
       const x = np.array([1, 2, 3, 4]);
@@ -247,13 +235,13 @@ suite.each(devices)("device:%s", (device) => {
       ]);
     });
 
-    test("raises TypeError on incompatible shapes", () => {
+    test("raises Error on incompatible shapes", () => {
       const x = np.array([1, 2, 3, 4]);
-      expect(() => np.reshape(x, [3, 2])).toThrow(TypeError);
-      expect(() => np.reshape(x, [2, 3])).toThrow(TypeError);
-      expect(() => np.reshape(x, [2, 2, 2])).toThrow(TypeError);
-      expect(() => np.reshape(x, [3, -1])).toThrow(TypeError);
-      expect(() => np.reshape(x, [-1, -1])).toThrow(TypeError);
+      expect(() => np.reshape(x, [3, 2])).toThrow(Error);
+      expect(() => np.reshape(x, [2, 3])).toThrow(Error);
+      expect(() => np.reshape(x, [2, 2, 2])).toThrow(Error);
+      expect(() => np.reshape(x, [3, -1])).toThrow(Error);
+      expect(() => np.reshape(x, [-1, -1])).toThrow(Error);
     });
 
     test("composes with jvp", () => {
@@ -702,20 +690,67 @@ suite.each(devices)("device:%s", (device) => {
 
     test("raises TypeError on axis mismatch", () => {
       const a = np.zeros([1, 2, 3]);
-      expect(() => np.pad(a, [])).toThrow(TypeError);
-      expect(() => np.pad(a, [[0, 1]])).not.toThrow(TypeError);
+      expect(() => np.pad(a, [])).toThrow(Error);
+      expect(() => np.pad(a, [[0, 1]])).not.toThrow(Error);
       expect(() =>
         np.pad(a, [
           [0, 1],
           [1, 2],
         ]),
-      ).toThrow(TypeError);
+      ).toThrow(Error);
     });
 
     test("pad handles backprop", () => {
       const a = np.array([1, 2, 3]);
       expect(grad((x: np.Array) => np.pad(x, 1).sum())(a).js()).toEqual([
         1, 1, 1,
+      ]);
+    });
+  });
+
+  suite("jax.numpy.concatenate()", () => {
+    // This suite also handles stack, hstack, vstack, dstack, etc.
+
+    test("can concatenate 1D arrays", () => {
+      const a = np.array([1, 2, 3]);
+      const b = np.array([4, 5, 6]);
+      const c = np.concatenate([a, b]);
+      expect(c.js()).toEqual([1, 2, 3, 4, 5, 6]);
+    });
+
+    test("concatenation size mismatch", () => {
+      const a = np.zeros([2, 3]);
+      let b = np.zeros([3, 2]);
+      expect(() => np.concatenate([a, b])).toThrow(Error);
+      expect(() => np.concatenate([a, b], 1)).toThrow(Error);
+      b = b.transpose();
+      expect(() => np.concatenate([a, b]).dispose()).not.toThrow(Error);
+    });
+
+    test("stack() and variants work", () => {
+      expect(np.stack([2, 3]).js()).toEqual([2, 3]);
+      expect(np.stack([2, 3], -1).js()).toEqual([2, 3]);
+      expect(() => np.stack([2, 3], 1)).toThrow(Error); // invalid axis
+      expect(() => np.stack([2, 3], 2)).toThrow(Error); // invalid axis
+
+      expect(np.vstack([1, 2, 3]).js()).toEqual([[1], [2], [3]]);
+      expect(np.vstack([np.array([1, 2, 3]), np.ones([3])]).js()).toEqual([
+        [1, 2, 3],
+        [1, 1, 1],
+      ]);
+
+      expect(np.hstack([1, 2, 3]).js()).toEqual([1, 2, 3]);
+      expect(np.hstack([np.array([1, 2, 3]), np.ones([3])]).js()).toEqual([
+        1, 2, 3, 1, 1, 1,
+      ]);
+
+      expect(np.dstack([1, 2, 3]).js()).toEqual([[[1, 2, 3]]]);
+      expect(np.dstack([np.array([1, 2, 3]), np.ones([3])]).js()).toEqual([
+        [
+          [1, 1],
+          [2, 1],
+          [3, 1],
+        ],
       ]);
     });
   });

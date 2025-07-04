@@ -96,6 +96,14 @@ export function isNumberPair(x: unknown): x is [number, number] {
   );
 }
 
+/** Check an axis against number of dimensions, and resolve negative axes. */
+export function checkAxis(axis: number, ndim: number): number {
+  if (axis < -ndim || axis >= ndim) {
+    throw new Error(`Invalid axis ${axis} for array of ${ndim} dimensions`);
+  }
+  return axis < 0 ? axis + ndim : axis;
+}
+
 export function range(
   start: number,
   stop?: number,

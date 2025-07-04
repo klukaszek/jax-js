@@ -117,9 +117,7 @@ function linearizeFlatUtil(
   const { jaxpr, pvalsOut, consts } = partialEvalFlat(fJvp, pvalsIn);
   const primalPvals = pvalsOut.slice(0, pvalsOut.length / 2);
   if (!primalPvals.every((pval) => pval.isKnown)) {
-    throw new TypeError(
-      "Not all primal values are known after partial evaluation",
-    );
+    throw new Error("Not all primal values are known after partial evaluation");
   }
   const primalsOut = primalPvals.map((pval) => pval.val!);
   return { primalsOut, jaxpr, consts };
