@@ -89,7 +89,11 @@
     logs = [];
 
     let params = await initializeParams();
+
+    const startTime = performance.now();
     const { X_train, y_train, X_test, y_test } = await loadData();
+    const duration = performance.now() - startTime;
+    log(`=> Data loaded in ${duration.toFixed(1)} ms`);
 
     const lr = 5e-4;
 

@@ -13,4 +13,15 @@ expect.extend({
       expected: expectedArray.js(),
     };
   },
+  toBeWithinRange(actual: number, min: number, max: number) {
+    const { isNot } = this;
+    const pass = actual >= min && actual <= max;
+    return {
+      pass,
+      message: () =>
+        `expected ${actual} to be${isNot ? " not" : ""} within range [${min}, ${max}]`,
+      actual,
+      expected: `[${min}, ${max}]`,
+    };
+  },
 });
