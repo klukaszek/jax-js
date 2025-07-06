@@ -6,6 +6,7 @@ import {
   makeJaxpr,
   nn,
   numpy as np,
+  tree,
   vjp,
   vmap,
 } from "@jax-js/jax";
@@ -217,21 +218,17 @@ suite("jax.grad()", () => {
       [0.2, 0.3],
     ]);
 
-    console.log(makeJaxpr(grad(loss))(params, x).jaxpr.toString());
+    // These numbers are checked for consistency with JAX.
+    expect(loss(tree.ref(params), x.ref)).toBeAllclose(-1.3165712);
+
+    // console.log(makeJaxpr(grad(loss))(params, x).jaxpr.toString());
     const grads = grad(loss)(params, x);
     expect(grads.w).toBeAllclose([
-      [
-        0.10957759618759155, -0.03502218425273895, -0.035850875079631805,
-        -0.038704533129930496,
-      ],
-      [
-        0.1827690452337265, -0.05844341218471527, -0.059866439551115036,
-        -0.0644591748714447,
-      ],
+      [0.1095776, -0.03502218, -0.03585088, -0.03870453],
+      [0.18276905, -0.05844341, -0.05986644, -0.06445917],
     ]);
     expect(grads.b).toBeAllclose([
-      0.7319144010543823, -0.23421229422092438, -0.2401556372642517,
-      -0.25754642486572266,
+      0.7319144, -0.2342123, -0.24015564, -0.25754642,
     ]);
   });
 });
