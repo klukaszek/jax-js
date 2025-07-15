@@ -239,5 +239,10 @@ suite.each(devices)("device:%s", (device) => {
     ]);
     expect(a.js()).toEqual([1, 2, 3]);
     expect(b.js()).toEqual([4, 5, 6]);
+
+    const [[x, y], z] = array([1, 2, 3, 4]).reshape([2, 2]);
+    expect(x.js()).toEqual(1);
+    expect(y.js()).toEqual(2);
+    expect(z.js()).toEqual([3, 4]);
   });
 });
