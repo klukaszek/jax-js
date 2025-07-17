@@ -29,7 +29,7 @@ export function split(key: Array, num: number = 2): Array[] {
     throw new Error(`Invalid number of splits: ${num}`);
   }
   const ret: Array[] = [];
-  for (let i = 0; i < num; i++) ret.push(key); // TODO: Actually split the key.
+  for (let i = 0; i < num; i++) ret.push(key.ref); // TODO: Actually split the key.
   key.dispose();
   return ret;
 }

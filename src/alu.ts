@@ -105,8 +105,14 @@ export class AluExp implements FpHashable {
     if (a.dtype === dtype) return a;
     return new AluExp(AluOp.Bitcast, dtype, [a]);
   }
-  static threefry2x32(k0: AluExp, k1: AluExp, c0: AluExp, c1: AluExp): AluExp {
-    return new AluExp(AluOp.Threefry2x32, DType.Uint32, [k0, k1, c0, c1]);
+  static threefry2x32(
+    k0: AluExp,
+    k1: AluExp,
+    c0: AluExp,
+    c1: AluExp,
+    mode: "xor" | 0 | 1 = "xor",
+  ): AluExp {
+    return new AluExp(AluOp.Threefry2x32, DType.Uint32, [k0, k1, c0, c1], mode);
   }
   static cmplt(a: AluExp, b: AluExp): AluExp {
     return new AluExp(AluOp.Cmplt, DType.Bool, [a, b]);
@@ -646,7 +652,10 @@ export class AluExp implements FpHashable {
           x.evaluate(context, globals),
         );
         const [x0, x1] = threefry2x32(k0, k1, c0, c1);
-        return x0 ^ x1;
+        if (this.arg === "xor") return x0 ^ x1;
+        else if (this.arg === 0) return x0;
+        else if (this.arg === 1) return x1;
+        else throw new Error(`Invalid Threefry2x32 mode: ${this.arg}`);
       }
       case AluOp.Const:
         return this.arg;
@@ -815,7 +824,7 @@ export enum AluOp {
   Cmpne = "Cmpne",
   Where = "Where", // Ternary operator: `cond ? a : b`
 
-  Threefry2x32 = "Threefry2x32", // PRNG operation, note that we take x0 ^ x1 as output.
+  Threefry2x32 = "Threefry2x32", // PRNG operation, arg = 'xor' | 0 | 1
 
   // Const is a literal constant, while GlobalIndex takes data from an array
   // buffer. Special and Variable are distinguished since the former is for
