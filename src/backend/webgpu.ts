@@ -363,7 +363,7 @@ function pipelineSource(device: GPUDevice, kernel: Kernel): ShaderInfo {
       const x = gensym(); // temporary to hold the `vec2<u32>(x0, x1)`
       const [k0, k1, c0, c1] = src.map((x) => strip1(gen(x)));
       emit(`let ${x} = threefry2x32(vec2(${k0}, ${k1}), vec2(${c0}, ${c1}));`);
-      if (arg === "xor") source = `${x}.x ^ ${x}.y`;
+      if (arg === "xor") source = `(${x}.x ^ ${x}.y)`;
       else if (arg === 0) source = `${x}.x`;
       else if (arg === 1) source = `${x}.y`;
       else throw new Error("Invalid Threefry2x32 mode: " + arg);
