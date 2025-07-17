@@ -4,6 +4,7 @@
     jit,
     nn,
     numpy as np,
+    random,
     setDevice,
     tree,
     valueAndGrad,
@@ -33,18 +34,21 @@
   };
 
   async function initializeParams(): Promise<Params> {
-    // We don't have random() yet, hopefully this is good enough? :/
-    const w1 = np
-      .sin(np.linspace(-1e6, 1e6, 784 * 128).reshape([784, 128]))
-      .mul(0.1);
+    const [k1, k2, k3] = random.split(random.key(0), 3);
+    const w1 = random.uniform(k1, [784, 128], {
+      minval: -1 / Math.sqrt(784),
+      maxval: 1 / Math.sqrt(784),
+    });
     const b1 = np.linspace(-1, 1, 128);
-    const w2 = np
-      .sin(np.linspace(-1e6, 1e6, 128 * 128).reshape([128, 128]))
-      .mul(0.1);
+    const w2 = random.uniform(k2, [128, 128], {
+      minval: -1 / Math.sqrt(128),
+      maxval: 1 / Math.sqrt(128),
+    });
     const b2 = np.linspace(-1, 1, 128);
-    const w3 = np
-      .sin(np.linspace(-1e6, 1e6, 128 * 10).reshape([128, 10]))
-      .mul(0.1);
+    const w3 = random.uniform(k3, [128, 10], {
+      minval: -1 / Math.sqrt(128),
+      maxval: 1 / Math.sqrt(128),
+    });
     const b3 = np.zeros([10]);
     const params = { w1, b1, w2, b2, w3, b3 };
     // Wait for all the arrays to be created on the device.
@@ -220,7 +224,6 @@
   <p class="mb-2">Note: This is pretty scuffed right now. To do:</p>
 
   <ul class="list-disc pl-6 mb-4">
-    <li>Weight initialization (currently sucks a lot, makes model bad)</li>
     <li>Implement Adam</li>
     <li>Convolutional layers</li>
     <li>Make JIT less inefficient</li>
