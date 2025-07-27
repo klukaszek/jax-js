@@ -712,7 +712,7 @@ export class Array extends Tracer {
         return [x.#binary(AluOp.Idiv, y)];
       },
       [Primitive.Neg]([x]) {
-        return [zerosLike(x).#binary(AluOp.Sub, x)];
+        return [zerosLike(x.ref).#binary(AluOp.Sub, x)];
       },
       [Primitive.Reciprocal]([x]) {
         return [x.#unary(AluOp.Reciprocal)];
@@ -1067,8 +1067,26 @@ const implRules: { [P in Primitive]: ImplRule<P> } = Array._implRules();
 
 export function zerosLike(val: TracerValue): Array {
   const aval = getAval(val);
+  if (val instanceof Tracer) val.dispose();
   // TODO: Use correct device.
-  return zeros(aval.shape, { dtype: aval.dtype }); // Does not dispose val.
+  return zeros(aval.shape, { dtype: aval.dtype });
+}
+
+export function onesLike(val: TracerValue): Array {
+  const aval = getAval(val);
+  if (val instanceof Tracer) val.dispose();
+  // TODO: Use correct device.
+  return ones(aval.shape, { dtype: aval.dtype });
+}
+
+export function fullLike(
+  val: TracerValue,
+  fillValue: number | boolean | Array,
+): Array {
+  const aval = getAval(val);
+  if (val instanceof Tracer) val.dispose();
+  // TODO: Use correct device.
+  return full(aval.shape, fillValue, { dtype: aval.dtype });
 }
 
 /** Return a new array of given shape and type, filled with zeros. */

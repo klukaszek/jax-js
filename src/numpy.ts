@@ -1,17 +1,20 @@
 import { AluOp, DType, isFloatDtype } from "./alu";
 import {
   arange,
-  array,
   Array,
+  array,
   type ArrayLike,
   eye,
   fudgeArray,
   full,
+  fullLike as fullLikeUnfudged,
   identity,
   linspace,
   ones,
+  onesLike as onesLikeUnfudged,
   scalar,
   zeros,
+  zerosLike as zerosLikeUnfudged,
 } from "./frontend/array";
 import * as core from "./frontend/core";
 import * as vmapModule from "./frontend/vmap";
@@ -142,6 +145,18 @@ export const ndim = core.ndim as (x: ArrayLike) => number;
 
 /** Return the shape of an array. Does not consume array reference. */
 export const shape = core.getShape as (x: ArrayLike) => number[];
+
+/** Return an array of zeros with the same shape and type as a given array. */
+export const zerosLike = zerosLikeUnfudged as (a: ArrayLike) => Array;
+
+/** Return an array of ones with the same shape and type as a given array. */
+export const onesLike = onesLikeUnfudged as (a: ArrayLike) => Array;
+
+/** Return a full array with the same shape and type as a given array. */
+export const fullLike = fullLikeUnfudged as (
+  a: ArrayLike,
+  fillValue: number | boolean | Array,
+) => Array;
 
 /**
  * Return the number of elements in an array, optionally along an axis.

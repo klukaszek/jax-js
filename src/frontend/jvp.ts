@@ -72,7 +72,7 @@ class JVPTrace extends Trace {
   }
 
   lift(val: Tracer): Tracer {
-    return new JVPTracer(this, val, zerosLike(val));
+    return new JVPTracer(this, val, zerosLike(val.ref));
   }
 
   processPrimitive<P extends Primitive>(
@@ -114,7 +114,7 @@ function zeroTangentsJvp<P extends Primitive>(primitive: P): JvpRule<P> {
   return (primals, tangents, params) => {
     for (const t of tangents) t.dispose();
     const ys = bind(primitive, primals, params);
-    return [ys, ys.map((y) => zerosLike(y))];
+    return [ys, ys.map((y) => zerosLike(y.ref))];
   };
 }
 
@@ -138,13 +138,13 @@ const jvpRules: { [P in Primitive]: JvpRule<P> } = {
       return [[cast(x, dtype)], [cast(dx, dtype)]];
     } else {
       dx.dispose();
-      return [[cast(x, dtype)], [zerosLike(x)]];
+      return [[cast(x.ref, dtype)], [zerosLike(x)]];
     }
   },
   [Primitive.Bitcast]([x], [dx], { dtype }) {
     if (x.dtype === dtype) return [[x], [dx]]; // No-op if dtype is the same.
     dx.dispose(); // Non-differentiable operation.
-    return [[bitcast(x, dtype)], [zerosLike(x)]];
+    return [[bitcast(x.ref, dtype)], [zerosLike(x)]];
   },
   [Primitive.RandomBits]: zeroTangentsJvp(Primitive.RandomBits),
   [Primitive.Sin]([x], [dx]) {
