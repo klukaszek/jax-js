@@ -123,6 +123,7 @@
     tree.dispose(latestParams);
     latestParams = tree.ref(params);
 
+    log(`=> Loading MNIST database from CDN...`);
     const startTime = performance.now();
     const { X_train, y_train, X_test, y_test } = await loadData();
     const duration = performance.now() - startTime;
