@@ -4,7 +4,8 @@
 // set of operations, as they both build open the same foundations.
 
 import { Array } from "./frontend/array";
-import { conv as convPrimitive } from "./frontend/core";
+import { bind1, conv as convPrimitive, Primitive } from "./frontend/core";
+import { vmap } from "./frontend/vmap";
 import { rep, zipn } from "./utils";
 
 type PaddingType = "VALID" | "SAME" | "SAME_LOWER" | [number, number][];
@@ -96,7 +97,7 @@ export function convWithGeneralPadding(
   padding: PaddingType,
   lhsDilation?: number[],
   rhsDilation?: number[],
-) {
+): Array {
   return convGeneralDilated(lhs, rhs, windowStrides, padding, {
     lhsDilation,
     rhsDilation,
@@ -109,6 +110,32 @@ export function conv(
   rhs: Array,
   windowStrides: number[],
   padding: PaddingType,
-) {
+): Array {
   return convGeneralDilated(lhs, rhs, windowStrides, padding);
+}
+
+/** Reduce a computation over padded windows. */
+export function reduceWindow(
+  operand: Array,
+  computation: (x: Array) => Array,
+  windowDimensions: number[],
+  windowStrides?: number[],
+): Array {
+  if (operand.ndim < windowDimensions.length) {
+    throw new Error(
+      `Operand dimensions ${operand.ndim} < window ${windowDimensions.length}`,
+    );
+  }
+  if (!windowStrides) windowStrides = rep(windowDimensions.length, 1);
+
+  for (let i = 0; i < operand.ndim; i++) {
+    // Vmap the computation over any pre-pooled dimensions.
+    computation = vmap(computation, 0) as any;
+  }
+  return computation(
+    bind1(Primitive.Pool, [operand], {
+      window: windowDimensions,
+      strides: windowStrides,
+    }) as Array,
+  );
 }

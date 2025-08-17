@@ -134,4 +134,38 @@ suite.each(devices)("device:%s", (device) => {
       }
     }
   });
+
+  test("max-pooling and min-pooling", () => {
+    const x = np.array([
+      [1, 2, 3, 4],
+      [5, 6, 7, 8],
+      [9, 10, 11, 12],
+    ]);
+    const result = lax.reduceWindow(x.ref, np.max, [2, 2], [1, 2]);
+    expect(result.js()).toEqual([
+      [6, 8],
+      [10, 12],
+    ]);
+
+    const resultMin = lax.reduceWindow(x, np.min, [2, 2], [1, 2]);
+    expect(resultMin.js()).toEqual([
+      [1, 3],
+      [5, 7],
+    ]);
+  });
+
+  test("grad of max-pool 2d", () => {
+    const x = np.array([
+      [1, 5, 3, 4],
+      [1, 2, 3, 4],
+    ]);
+    const maxPool2x2Sum = (x: np.Array) =>
+      lax.reduceWindow(x, np.max, [2, 2], [2, 2]).sum();
+
+    expect(maxPool2x2Sum(x.ref).js()).toEqual(9); // 5 + 4
+    expect(grad(maxPool2x2Sum)(x).js()).toEqual([
+      [0, 1, 0, 0.5],
+      [0, 0, 0, 0.5],
+    ]);
+  });
 });

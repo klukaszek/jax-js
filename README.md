@@ -65,8 +65,6 @@ pnpm test
 
 ## Next on Eric's mind
 
-- Write unit tests for `poolTranspose()` in convolution.ts
-- Add lax API for reducing windows based on `pool`
 - Start building Wasm backend
 - Fix jit-of-grad returning very incorrect result
 - Probably add static_argnums to jit() so that clip and some nn functions have jit added

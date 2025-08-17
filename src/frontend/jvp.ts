@@ -201,7 +201,7 @@ const jvpRules: { [P in Primitive]: JvpRule<P> } = {
       // multiple minima, it's not well-defined which one to take as the tangent
       // vector (sharp discontinuity), so we average over all of them.
       const notMin = notEqual(x, broadcast(primal.ref, x.shape, axis));
-      const minCount = notMin.ref.astype(DType.Float32).sum(axis);
+      const minCount = where(notMin.ref, 0.0, 1.0).sum(axis);
       const tangent = where(notMin, 0.0, dx).sum(axis).div(minCount);
       return [[primal], [tangent]];
     } else {

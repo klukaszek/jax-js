@@ -602,9 +602,9 @@ function splitGraphDataflow(backend: Backend, jaxpr: Jaxpr): Set<Var> {
   }
   const reducePrimitives = [
     Primitive.Reduce,
-    Primitive.PoolTranspose,
     Primitive.Dot,
     Primitive.Conv,
+    Primitive.PoolTranspose,
   ];
   for (let i = jaxpr.eqns.length - 1; i >= 0; i--) {
     const eqn = jaxpr.eqns[i];

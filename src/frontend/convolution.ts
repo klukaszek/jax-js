@@ -266,9 +266,14 @@ export function poolTranspose(
   ]);
 
   // Undo taking every s-th element (stride).
-  st = st
-    .reshape([...noop, ...kos.flatMap(([k, o]) => [k, o, 1])])
-    .expand([...noop, ...kos.flat(1)]);
+  st = st.reshape([...noop, ...kos.flatMap(([k, o]) => [k, o, 1])]).pad([
+    ...noop.map<Pair>(() => [0, 0]),
+    ...s_.flatMap<Pair>((s) => [
+      [0, 0],
+      [0, 0],
+      [0, s - 1],
+    ]),
+  ]);
   st = st.reshape([...noop, ...kos.flatMap(([k, o, s]) => [k, o * s])]).pad([
     ...noop.map<Pair>(() => [0, 0]),
     ...kidf.flatMap<Pair>(([_k, i, d, f], j) => [
