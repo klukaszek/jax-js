@@ -80,52 +80,58 @@
 
   const ConvNet: ModelType = {
     init(key: np.Array): Params {
-      const [k11, k12, k21, k22, k31, k32] = random.split(key, 6);
-      const w1 = random.uniform(k11, [32, 1, 5, 5], {
+      const [k11, k12, k21, k22, k31, k32, k41, k42] = random.split(key, 8);
+      const w1 = random.uniform(k11, [24, 1, 5, 5], {
         minval: -1 / Math.sqrt(5 * 5),
         maxval: 1 / Math.sqrt(5 * 5),
       });
-      const b1 = random.uniform(k12, [32, 1, 1], {
+      const b1 = random.uniform(k12, [24, 1, 1], {
         minval: -1 / Math.sqrt(5 * 5),
         maxval: 1 / Math.sqrt(5 * 5),
       });
-      const w2 = random.uniform(k21, [64, 32, 3, 3], {
-        minval: -1 / Math.sqrt(32 * 3 * 3),
-        maxval: 1 / Math.sqrt(32 * 3 * 3),
+      const w2 = random.uniform(k21, [32, 24, 3, 3], {
+        minval: -1 / Math.sqrt(24 * 3 * 3),
+        maxval: 1 / Math.sqrt(24 * 3 * 3),
       });
-      const b2 = random.uniform(k22, [64, 1, 1], {
-        minval: -1 / Math.sqrt(32 * 3 * 3),
-        maxval: 1 / Math.sqrt(32 * 3 * 3),
+      const b2 = random.uniform(k22, [32, 1, 1], {
+        minval: -1 / Math.sqrt(24 * 3 * 3),
+        maxval: 1 / Math.sqrt(24 * 3 * 3),
       });
-      const w3 = random.uniform(k31, [1600, 10], {
-        minval: -1 / Math.sqrt(1600),
-        maxval: 1 / Math.sqrt(1600),
+      const w3 = random.uniform(k31, [800, 128], {
+        minval: -1 / Math.sqrt(800),
+        maxval: 1 / Math.sqrt(800),
       });
-      const b3 = random.uniform(k32, [10], {
-        minval: -1 / Math.sqrt(1600),
-        maxval: 1 / Math.sqrt(1600),
+      const b3 = random.uniform(k32, [128], {
+        minval: -1 / Math.sqrt(800),
+        maxval: 1 / Math.sqrt(800),
       });
-      return { w1, b1, w2, b2, w3, b3 };
+      const w4 = random.uniform(k41, [128, 10], {
+        minval: -1 / Math.sqrt(128),
+        maxval: 1 / Math.sqrt(128),
+      });
+      const b4 = random.uniform(k42, [10], {
+        minval: -1 / Math.sqrt(128),
+        maxval: 1 / Math.sqrt(128),
+      });
+      return { w1, b1, w2, b2, w3, b3, w4, b4 };
     },
 
     predict: jit((params: Params, x: np.Array): np.Array => {
       // Forward pass through the network
       x = x.reshape([-1, 1, 28, 28]);
-      // TODO: This causes kernel panic on my machine (M1 MBP).
-      // const z1 = maxPool2x2(
-      //   lax.convGeneralDilated(x, params.w1, [1, 1], "VALID").add(params.b1),
-      // );
-      const z1 = lax
-        .convGeneralDilated(x, params.w1, [2, 2], "VALID")
-        .add(params.b1);
-      const a1 = nn.relu(z1); // [batch, 32, 12, 12]
+      const z1 = maxPool2x2(
+        lax.convGeneralDilated(x, params.w1, [1, 1], "VALID").add(params.b1),
+      );
+      const a1 = nn.relu(z1); // [batch, 24, 12, 12]
       const z2 = maxPool2x2(
         lax.convGeneralDilated(a1, params.w2, [1, 1], "VALID").add(params.b2),
       );
-      const a2 = nn.relu(z2); // [batch, 64, 5, 5]
-      const a2flat = a2.reshape([-1, 1600]); // Flatten to [batch, 1600]
+      const a2 = nn.relu(z2); // [batch, 32, 5, 5]
+      const a2flat = a2.reshape([-1, 800]); // Flatten to [batch, 800]
       const z3 = np.dot(a2flat, params.w3).add(params.b3);
-      return nn.logSoftmax(z3);
+      const a3 = nn.relu(z3);
+      const z4 = np.dot(a3, params.w4).add(params.b4);
+      return nn.logSoftmax(z4);
     }),
   };
 
@@ -173,8 +179,8 @@
   let stopping = false;
 
   // Settings
-  let learningRate = $state(0.001);
-  let logLearningRate = $state(Math.log10(0.001)); // -3 for 0.001
+  let learningRate = $state(0.005);
+  let logLearningRate = $state(Math.log10(0.005));
   let showSettings = $state(false);
 
   $effect(() => {
@@ -200,7 +206,7 @@
         break;
       case "ConvNet":
         Model = ConvNet;
-        batchSize = 500;
+        batchSize = 250;
         break;
       default:
         throw new Error(`Unknown model type: ${modelType}`);
@@ -469,9 +475,9 @@
     </p>
 
     <p class="mb-4">
-      The model is a 3-layer MLP or convolutional neural network trained with
-      Adam. Each epoch has 60 (MLP) or 120 (ConvNet) randomized batches, with
-      60,000 images in total in the train set.
+      The model is a 3-layer MLP or 4-layer convolutional neural network trained
+      with Adam. Each epoch has 60 (MLP) or 240 (ConvNet) randomized batches,
+      with 60,000 images in total in the train set.
     </p>
 
     <p class="mb-4 text-sm">
@@ -520,7 +526,7 @@
             <input
               id="learning-rate-slider"
               type="range"
-              min="-4"
+              min="-3"
               max="-2"
               step="0.01"
               bind:value={logLearningRate}
@@ -529,7 +535,7 @@
             />
             <input
               type="number"
-              min="0.0001"
+              min="0.001"
               max="0.01"
               step="any"
               bind:value={learningRate}
@@ -541,7 +547,7 @@
           <div class="flex justify-end">
             <button
               onclick={() => {
-                learningRate = 0.001;
+                learningRate = 0.005;
               }}
               disabled={running}
             >
