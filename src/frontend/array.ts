@@ -7,6 +7,7 @@ import {
   byteWidth,
   DType,
   dtypedArray,
+  dtypedJsArray,
   Kernel,
   Reduction,
 } from "../alu";
@@ -975,7 +976,7 @@ export function array(
       return arrayFromData(data, shape, { dtype, device });
     } else {
       dtype = dtype ?? DType.Float32;
-      const data = dtypedArray(dtype, flat as number[]);
+      const data = dtypedJsArray(dtype, flat as number[]);
       return arrayFromData(data, shape, { dtype, device });
     }
   }
@@ -1002,42 +1003,45 @@ function arrayFromData(
   }
 
   const backend = getBackend(device);
-  if (data instanceof Float32Array) {
-    if (dtype && dtype !== DType.Float32) {
-      throw new Error("Float32Array must have float32 type");
+  if (ArrayBuffer.isView(data)) {
+    const buf = new Uint8Array(data.buffer, data.byteOffset, data.byteLength);
+    if (data instanceof Float32Array) {
+      if (dtype && dtype !== DType.Float32) {
+        throw new Error("Float32Array must have float32 type");
+      }
+      const slot = backend.malloc(data.byteLength, buf);
+      return new Array(
+        slot,
+        ShapeTracker.fromShape(shape),
+        DType.Float32,
+        backend,
+      );
+    } else if (data instanceof Int32Array) {
+      if (dtype && dtype !== DType.Int32 && dtype !== DType.Bool) {
+        throw new Error("Int32Array must have int32 or bool type");
+      }
+      const slot = backend.malloc(data.byteLength, buf);
+      return new Array(
+        slot,
+        ShapeTracker.fromShape(shape),
+        dtype ?? DType.Int32,
+        backend,
+      );
+    } else if (data instanceof Uint32Array) {
+      if (dtype && dtype !== DType.Uint32) {
+        throw new Error("Uint32Array must have uint32 type");
+      }
+      const slot = backend.malloc(data.byteLength, buf);
+      return new Array(
+        slot,
+        ShapeTracker.fromShape(shape),
+        DType.Uint32,
+        backend,
+      );
     }
-    const slot = backend.malloc(data.byteLength, data.buffer);
-    return new Array(
-      slot,
-      ShapeTracker.fromShape(shape),
-      DType.Float32,
-      backend,
-    );
-  } else if (data instanceof Int32Array) {
-    if (dtype && dtype !== DType.Int32 && dtype !== DType.Bool) {
-      throw new Error("Int32Array must have int32 or bool type");
-    }
-    const slot = backend.malloc(data.byteLength, data.buffer);
-    return new Array(
-      slot,
-      ShapeTracker.fromShape(shape),
-      dtype ?? DType.Int32,
-      backend,
-    );
-  } else if (data instanceof Uint32Array) {
-    if (dtype && dtype !== DType.Uint32) {
-      throw new Error("Uint32Array must have uint32 type");
-    }
-    const slot = backend.malloc(data.byteLength, data.buffer);
-    return new Array(
-      slot,
-      ShapeTracker.fromShape(shape),
-      DType.Uint32,
-      backend,
-    );
-  } else {
-    throw new Error("Unsupported data type");
   }
+
+  throw new Error("Unsupported data type: " + (data as any).constructor.name);
 }
 
 function dataToJs(

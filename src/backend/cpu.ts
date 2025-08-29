@@ -7,7 +7,7 @@ export class CPUBackend implements Backend {
   readonly type: Device = "cpu";
   readonly maxArgs = Infinity;
 
-  #buffers: Map<Slot, { ref: number; buffer: ArrayBuffer }>;
+  #buffers: Map<Slot, { ref: number; buffer: Uint8Array }>;
   #nextSlot: number;
 
   constructor() {
@@ -15,13 +15,13 @@ export class CPUBackend implements Backend {
     this.#nextSlot = 1;
   }
 
-  malloc(size: number, initialData?: ArrayBuffer): Slot {
-    const buffer = new ArrayBuffer(size);
+  malloc(size: number, initialData?: Uint8Array): Slot {
+    const buffer = new Uint8Array(size);
     if (initialData) {
       if (initialData.byteLength !== size) {
         throw new Error("initialData size does not match buffer size");
       }
-      new Uint8Array(buffer).set(new Uint8Array(initialData));
+      buffer.set(initialData);
     }
 
     const slot = this.#nextSlot++;
@@ -44,11 +44,11 @@ export class CPUBackend implements Backend {
     }
   }
 
-  async read(slot: Slot, start?: number, count?: number): Promise<ArrayBuffer> {
+  async read(slot: Slot, start?: number, count?: number): Promise<Uint8Array> {
     return this.readSync(slot, start, count);
   }
 
-  readSync(slot: Slot, start?: number, count?: number): ArrayBuffer {
+  readSync(slot: Slot, start?: number, count?: number): Uint8Array {
     const buffer = this.#getBuffer(slot);
     if (start === undefined) start = 0;
     if (count === undefined) count = buffer.byteLength - start;
@@ -108,7 +108,7 @@ export class CPUBackend implements Backend {
     }
   }
 
-  #getBuffer(slot: Slot): ArrayBuffer {
+  #getBuffer(slot: Slot): Uint8Array {
     const buffer = this.#buffers.get(slot);
     if (!buffer) throw new SlotError(slot);
     return buffer.buffer;

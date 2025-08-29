@@ -26,8 +26,14 @@ suite.each(devices)("device:%s", (device) => {
     const backend = getBackend(device);
 
     const shape = ShapeTracker.fromShape([3]);
-    const a = backend.malloc(3 * 4, new Float32Array([1, 2, 3]).buffer);
-    const b = backend.malloc(3 * 4, new Float32Array([4, 5, 6]).buffer);
+    const a = backend.malloc(
+      3 * 4,
+      new Uint8Array(new Float32Array([1, 2, 3]).buffer),
+    );
+    const b = backend.malloc(
+      3 * 4,
+      new Uint8Array(new Float32Array([4, 5, 6]).buffer),
+    );
     const c = backend.malloc(3 * 4);
 
     try {
@@ -40,14 +46,14 @@ suite.each(devices)("device:%s", (device) => {
       );
       backend.dispatch(exe1, [a, b], [c]);
 
-      const buf = await backend.read(c);
+      const { buffer: buf } = await backend.read(c);
       expect(new Float32Array(buf)).toEqual(new Float32Array([6, 10, 12]));
 
       const exe2 = await backend.prepare(
         new Kernel(2, 3, AluExp.add(arg1, arg2)),
       );
       backend.dispatch(exe2, [a, b], [c]);
-      const buf2 = await backend.read(c);
+      const { buffer: buf2 } = await backend.read(c);
       expect(new Float32Array(buf2)).toEqual(new Float32Array([7, 7, 7]));
 
       // Now try it with GlobalView.
@@ -57,7 +63,7 @@ suite.each(devices)("device:%s", (device) => {
         new Kernel(2, 3, AluExp.mul(arg1, arg2)),
       );
       backend.dispatch(exe3, [a, b], [c]);
-      const buf3 = await backend.read(c);
+      const { buffer: buf3 } = await backend.read(c);
       expect(new Float32Array(buf3)).toEqual(new Float32Array([6, 10, 12]));
     } finally {
       backend.decRef(a);
@@ -74,7 +80,7 @@ suite.each(devices)("device:%s", (device) => {
         new Kernel(0, 200, AluExp.cast(DType.Float32, AluVar.gidx)),
       );
       backend.dispatch(exe, [], [a]);
-      const buf = await backend.read(a);
+      const { buffer: buf } = await backend.read(a);
       expect(new Float32Array(buf)).toEqual(new Float32Array(range(0, 200)));
     } finally {
       backend.decRef(a);
@@ -89,7 +95,7 @@ suite.each(devices)("device:%s", (device) => {
         new Kernel(0, 4, AluExp.cast(DType.Float32, AluVar.gidx)),
       );
       backend.dispatch(exe, [], [a]);
-      const buf = backend.readSync(a);
+      const buf = backend.readSync(a).buffer;
       expect(new Float32Array(buf)).toEqual(new Float32Array([0, 1, 2, 3]));
     } finally {
       backend.decRef(a);
@@ -99,11 +105,11 @@ suite.each(devices)("device:%s", (device) => {
   test("synchronously reads a buffer", () => {
     const backend = getBackend(device);
     const array = new Float32Array([1, 1, 2, 3, 5, 7]);
-    const a = backend.malloc(6 * 4, array.buffer);
+    const a = backend.malloc(6 * 4, new Uint8Array(array.buffer));
     try {
-      let buf = backend.readSync(a);
+      let buf = backend.readSync(a).buffer;
       expect(new Float32Array(buf)).toEqual(array);
-      buf = backend.readSync(a, 3 * 4, 2 * 4);
+      buf = backend.readSync(a, 3 * 4, 2 * 4).buffer;
       expect(new Float32Array(buf)).toEqual(array.slice(3, 5));
     } finally {
       backend.decRef(a);
@@ -113,11 +119,11 @@ suite.each(devices)("device:%s", (device) => {
   test("asynchronously reads a buffer", async () => {
     const backend = getBackend(device);
     const array = new Float32Array([1, 1, 2, 3, 5, 7]);
-    const a = backend.malloc(6 * 4, array.buffer);
+    const a = backend.malloc(6 * 4, new Uint8Array(array.buffer));
     try {
-      let buf = await backend.read(a);
+      let buf = (await backend.read(a)).buffer;
       expect(new Float32Array(buf)).toEqual(array);
-      buf = await backend.read(a, 3 * 4, 2 * 4);
+      buf = (await backend.read(a, 3 * 4, 2 * 4)).buffer;
       expect(new Float32Array(buf)).toEqual(array.slice(3, 5));
     } finally {
       backend.decRef(a);
@@ -128,7 +134,7 @@ suite.each(devices)("device:%s", (device) => {
     const backend = getBackend(device);
 
     const array = new Float32Array([1, 1, 2, 3, 5, 7]);
-    const a = backend.malloc(6 * 4, array.buffer);
+    const a = backend.malloc(6 * 4, new Uint8Array(array.buffer));
     const output = backend.malloc(3 * 4);
     try {
       const st = ShapeTracker.fromShape([3, 2]);
@@ -142,7 +148,7 @@ suite.each(devices)("device:%s", (device) => {
       const exe = backend.prepareSync(kernel);
       backend.dispatch(exe, [a], [output]);
 
-      const buf = backend.readSync(output);
+      const buf = backend.readSync(output).buffer;
       expect(new Float32Array(buf)).toEqual(new Float32Array([2, 5, 12]));
 
       // Try a reduction with fused +1.
@@ -156,7 +162,7 @@ suite.each(devices)("device:%s", (device) => {
       const exe2 = backend.prepareSync(kernel);
       backend.dispatch(exe2, [a], [output]);
 
-      const buf2 = backend.readSync(output);
+      const buf2 = backend.readSync(output).buffer;
       expect(new Float32Array(buf2)).toEqual(new Float32Array([3, 6, 13]));
     } finally {
       backend.decRef(a);
@@ -172,7 +178,7 @@ suite.each(devices)("device:%s", (device) => {
     const array = new Float32Array(n * n);
     for (let i = 0; i < array.length; ++i) array[i] = 1.0;
 
-    const a = backend.malloc(n * n * 4, array.buffer);
+    const a = backend.malloc(n * n * 4, new Uint8Array(array.buffer));
     const b = backend.malloc(n * n * 4);
     try {
       // Calculate a^2, which should be all n.0 values.
@@ -190,7 +196,7 @@ suite.each(devices)("device:%s", (device) => {
       const exe = await backend.prepare(kernel);
       backend.dispatch(exe, [a], [b]);
 
-      const result = new Float32Array(await backend.read(b));
+      const result = new Float32Array((await backend.read(b)).buffer);
       for (let i = 0; i < result.length; i++) {
         expect(result[i]).toBeCloseTo(n);
       }

@@ -39,7 +39,7 @@ export class WebGPUBackend implements Backend {
     this.nextSlot = 1;
   }
 
-  malloc(size: number, initialData?: ArrayBuffer): Slot {
+  malloc(size: number, initialData?: Uint8Array): Slot {
     let buffer: GPUBuffer;
     if (initialData) {
       if (initialData.byteLength !== size) {
@@ -47,9 +47,7 @@ export class WebGPUBackend implements Backend {
       }
       if (initialData.byteLength < 4096) {
         buffer = this.#createBuffer(size, { mapped: true });
-        new Uint8Array(buffer.getMappedRange()).set(
-          new Uint8Array(initialData),
-        );
+        new Uint8Array(buffer.getMappedRange()).set(initialData);
         buffer.unmap();
       } else {
         // getMappedRange() seems slower for large buffers, use writeBuffer() instead.
@@ -83,7 +81,7 @@ export class WebGPUBackend implements Backend {
     }
   }
 
-  async read(slot: Slot, start?: number, count?: number): Promise<ArrayBuffer> {
+  async read(slot: Slot, start?: number, count?: number): Promise<Uint8Array> {
     const buffer = this.#getBuffer(slot);
     if (start === undefined) start = 0;
     if (count === undefined) count = buffer.size - start;
@@ -97,13 +95,13 @@ export class WebGPUBackend implements Backend {
 
       await staging.mapAsync(GPUMapMode.READ);
       const arrayBuffer = staging.getMappedRange();
-      return arrayBuffer.slice();
+      return new Uint8Array(arrayBuffer.slice());
     } finally {
       staging.destroy();
     }
   }
 
-  readSync(slot: Slot, start?: number, count?: number): ArrayBuffer {
+  readSync(slot: Slot, start?: number, count?: number): Uint8Array {
     const buffer = this.#getBuffer(slot);
     if (start === undefined) start = 0;
     if (count === undefined) count = buffer.size - start;
@@ -685,7 +683,7 @@ class SyncReader {
     this.initialized = true;
   }
 
-  read(buffer: GPUBuffer, start: number, count: number): ArrayBuffer {
+  read(buffer: GPUBuffer, start: number, count: number): Uint8Array {
     if (!this.initialized) this.#init();
 
     if (count % 4 !== 0) {
@@ -750,7 +748,7 @@ class SyncReader {
       if (remainder > 0) readData(remainder, 1, offset);
     }
 
-    return valsGPU;
+    return new Uint8Array(valsGPU);
   }
 }
 

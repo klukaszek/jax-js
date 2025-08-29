@@ -124,7 +124,7 @@ export interface Backend {
   readonly maxArgs: number;
 
   /** Allocate a new slot with reference count 1. */
-  malloc(size: number, initialData?: ArrayBuffer): Slot;
+  malloc(size: number, initialData?: Uint8Array): Slot;
 
   /** Increment the reference count of the slot. */
   incRef(slot: Slot): void;
@@ -136,10 +136,10 @@ export interface Backend {
   decRef(slot: Slot): void;
 
   /** Read a range of bytes from a buffer. */
-  read(slot: Slot, start?: number, count?: number): Promise<ArrayBuffer>;
+  read(slot: Slot, start?: number, count?: number): Promise<Uint8Array>;
 
   /** Read a range of bytes from a buffer, blocking variant. */
-  readSync(slot: Slot, start?: number, count?: number): ArrayBuffer;
+  readSync(slot: Slot, start?: number, count?: number): Uint8Array;
 
   /** Prepare an expression to be executed later. */
   prepare(kernel: Kernel): Promise<Executable>;

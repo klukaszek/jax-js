@@ -29,17 +29,35 @@ export const isFloatDtype = (dtype: DType) =>
 
 export function dtypedArray(
   dtype: DType,
-  data: ArrayBuffer | number[],
+  data: Uint8Array,
+): Float32Array | Int32Array | Uint32Array {
+  const { buffer, byteLength, byteOffset } = data;
+  const length = byteLength / byteWidth(dtype);
+  switch (dtype) {
+    case DType.Float32:
+      return new Float32Array(buffer, byteOffset, length);
+    case DType.Int32:
+    case DType.Bool: // Booleans are stored as 0/1 in int32.
+      return new Int32Array(buffer, byteOffset, length);
+    case DType.Uint32:
+      return new Uint32Array(buffer, byteOffset, length);
+    default:
+      throw new Error(`Unimplemented dtype: ${dtype}`);
+  }
+}
+
+export function dtypedJsArray(
+  dtype: DType,
+  data: number[],
 ): Float32Array | Int32Array | Uint32Array {
   switch (dtype) {
     case DType.Float32:
       return new Float32Array(data);
     case DType.Int32:
+    case DType.Bool: // Booleans are stored as 0/1 in int32.
       return new Int32Array(data);
     case DType.Uint32:
       return new Uint32Array(data);
-    case DType.Bool:
-      return new Int32Array(data); // Booleans are stored as 0/1 in int32.
     default:
       throw new Error(`Unimplemented dtype: ${dtype}`);
   }
