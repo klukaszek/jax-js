@@ -76,11 +76,19 @@ export class WasmBackend implements Backend {
     }
   }
 
-  async read(slot: Slot, start?: number, count?: number): Promise<Uint8Array> {
+  async read(
+    slot: Slot,
+    start?: number,
+    count?: number,
+  ): Promise<Uint8Array<ArrayBuffer>> {
     return this.readSync(slot, start, count);
   }
 
-  readSync(slot: Slot, start?: number, count?: number): Uint8Array {
+  readSync(
+    slot: Slot,
+    start?: number,
+    count?: number,
+  ): Uint8Array<ArrayBuffer> {
     const buffer = this.#getBuffer(slot);
     if (start === undefined) start = 0;
     if (count === undefined) count = buffer.byteLength - start;
@@ -112,14 +120,14 @@ export class WasmBackend implements Backend {
     func(...ptrs);
   }
 
-  #getBuffer(slot: Slot): Uint8Array {
+  #getBuffer(slot: Slot): Uint8Array<ArrayBuffer> {
     const buffer = this.#buffers.get(slot);
     if (!buffer) throw new SlotError(slot);
     return new Uint8Array(this.#memory.buffer, buffer.ptr, buffer.size);
   }
 }
 
-function codegenWasm(kernel: Kernel): Uint8Array {
+function codegenWasm(kernel: Kernel): Uint8Array<ArrayBuffer> {
   const tune = tuneNullopt(kernel);
   const re = kernel.reduction;
 

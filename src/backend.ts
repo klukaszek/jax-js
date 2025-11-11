@@ -149,10 +149,14 @@ export interface Backend {
   decRef(slot: Slot): void;
 
   /** Read a range of bytes from a buffer. */
-  read(slot: Slot, start?: number, count?: number): Promise<Uint8Array>;
+  read(
+    slot: Slot,
+    start?: number,
+    count?: number,
+  ): Promise<Uint8Array<ArrayBuffer>>;
 
   /** Read a range of bytes from a buffer, blocking variant. */
-  readSync(slot: Slot, start?: number, count?: number): Uint8Array;
+  readSync(slot: Slot, start?: number, count?: number): Uint8Array<ArrayBuffer>;
 
   /** Prepare an expression to be executed later. */
   prepare(kernel: Kernel): Promise<Executable>;

@@ -12,7 +12,11 @@ export enum DType {
 }
 
 /** @inline */
-export type DataArray = Float32Array | Int32Array | Uint32Array | Float16Array;
+export type DataArray =
+  | Float32Array<ArrayBuffer>
+  | Int32Array<ArrayBuffer>
+  | Uint32Array<ArrayBuffer>
+  | Float16Array<ArrayBuffer>;
 
 export const byteWidth = (dtype: DType): number => {
   switch (dtype) {
@@ -31,7 +35,10 @@ export const byteWidth = (dtype: DType): number => {
 export const isFloatDtype = (dtype: DType) =>
   dtype === DType.Float32 || dtype === DType.Float16;
 
-export function dtypedArray(dtype: DType, data: Uint8Array): DataArray {
+export function dtypedArray(
+  dtype: DType,
+  data: Uint8Array<ArrayBuffer>,
+): DataArray {
   const { buffer, byteLength, byteOffset } = data;
   const length = byteLength / byteWidth(dtype);
   switch (dtype) {

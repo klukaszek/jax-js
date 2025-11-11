@@ -947,10 +947,10 @@ export function scalar(
 export function array(
   values:
     | Array
-    | Float16Array
-    | Float32Array
-    | Int32Array
-    | Uint32Array
+    | Float16Array<ArrayBuffer>
+    | Float32Array<ArrayBuffer>
+    | Int32Array<ArrayBuffer>
+    | Uint32Array<ArrayBuffer>
     | RecursiveArray<number>
     | RecursiveArray<boolean>,
   { shape, dtype, device }: { shape?: number[] } & DTypeAndDevice = {},

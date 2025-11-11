@@ -53,7 +53,7 @@ export class WebGPUBackend implements Backend {
     this.nextSlot = 1;
   }
 
-  malloc(size: number, initialData?: Uint8Array): Slot {
+  malloc(size: number, initialData?: Uint8Array<ArrayBuffer>): Slot {
     let buffer: GPUBuffer;
     // All GPUBuffer must be a multiple of 4 bytes in length, to support copy
     // operations. Pad it to a multiple of 4.
@@ -107,7 +107,11 @@ export class WebGPUBackend implements Backend {
     }
   }
 
-  async read(slot: Slot, start?: number, count?: number): Promise<Uint8Array> {
+  async read(
+    slot: Slot,
+    start?: number,
+    count?: number,
+  ): Promise<Uint8Array<ArrayBuffer>> {
     const { buffer, size } = this.#getBuffer(slot);
     if (start === undefined) start = 0;
     if (count === undefined) count = size - start;
@@ -128,7 +132,11 @@ export class WebGPUBackend implements Backend {
     }
   }
 
-  readSync(slot: Slot, start?: number, count?: number): Uint8Array {
+  readSync(
+    slot: Slot,
+    start?: number,
+    count?: number,
+  ): Uint8Array<ArrayBuffer> {
     const { buffer, size } = this.#getBuffer(slot);
     if (start === undefined) start = 0;
     if (count === undefined) count = size - start;
@@ -727,7 +735,11 @@ class SyncReader {
     this.initialized = true;
   }
 
-  read(buffer: GPUBuffer, start: number, count: number): Uint8Array {
+  read(
+    buffer: GPUBuffer,
+    start: number,
+    count: number,
+  ): Uint8Array<ArrayBuffer> {
     if (!this.initialized) this.#init();
 
     const deviceStorage = this.deviceStorage!;

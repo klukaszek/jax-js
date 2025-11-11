@@ -7,7 +7,7 @@ export class CpuBackend implements Backend {
   readonly type: Device = "cpu";
   readonly maxArgs = Infinity;
 
-  #buffers: Map<Slot, { ref: number; buffer: Uint8Array }>;
+  #buffers: Map<Slot, { ref: number; buffer: Uint8Array<ArrayBuffer> }>;
   #nextSlot: number;
 
   constructor() {
@@ -44,11 +44,19 @@ export class CpuBackend implements Backend {
     }
   }
 
-  async read(slot: Slot, start?: number, count?: number): Promise<Uint8Array> {
+  async read(
+    slot: Slot,
+    start?: number,
+    count?: number,
+  ): Promise<Uint8Array<ArrayBuffer>> {
     return this.readSync(slot, start, count);
   }
 
-  readSync(slot: Slot, start?: number, count?: number): Uint8Array {
+  readSync(
+    slot: Slot,
+    start?: number,
+    count?: number,
+  ): Uint8Array<ArrayBuffer> {
     const buffer = this.#getBuffer(slot);
     if (start === undefined) start = 0;
     if (count === undefined) count = buffer.byteLength - start;
@@ -108,7 +116,7 @@ export class CpuBackend implements Backend {
     }
   }
 
-  #getBuffer(slot: Slot): Uint8Array {
+  #getBuffer(slot: Slot): Uint8Array<ArrayBuffer> {
     const buffer = this.#buffers.get(slot);
     if (!buffer) throw new SlotError(slot);
     return buffer.buffer;

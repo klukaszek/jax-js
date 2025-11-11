@@ -32,9 +32,10 @@ const mnistLinks = {
 // 0x0C: int (4 bytes)
 // 0x0D: float (4 bytes)
 // 0x0E: double (8 bytes)
-async function fetchIdxFile(
-  url: string,
-): Promise<{ shape: number[]; data: Int32Array | Float32Array }> {
+async function fetchIdxFile(url: string): Promise<{
+  shape: number[];
+  data: Int32Array<ArrayBuffer> | Float32Array<ArrayBuffer>;
+}> {
   const bytes = await cachedFetch(url);
   const stream = new Blob([bytes])
     .stream()
@@ -53,7 +54,7 @@ async function fetchIdxFile(
 
   // Now, read the data.
   view = new DataView(buffer, 4 + rank * 4);
-  let data: Int32Array | Float32Array;
+  let data: Int32Array<ArrayBuffer> | Float32Array<ArrayBuffer>;
 
   switch (dataType) {
     case 0x08: // unsigned byte

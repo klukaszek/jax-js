@@ -39,7 +39,7 @@ export type File = {
 };
 
 /** Load data from a safetensors file. */
-export function parse(data: Uint8Array | ArrayBuffer): File {
+export function parse(data: Uint8Array<ArrayBuffer> | ArrayBuffer): File {
   let buffer: ArrayBuffer;
   let ptr = 0;
   const len = data.byteLength;

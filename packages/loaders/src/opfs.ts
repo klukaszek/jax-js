@@ -60,7 +60,7 @@ export class OPFS {
   }
 
   /** Write data to OPFS with the given key. */
-  async write(name: string, data: Uint8Array): Promise<void> {
+  async write(name: string, data: Uint8Array<ArrayBuffer>): Promise<void> {
     const root = await this.#getRoot();
     const key = OPFS.#escapeKey(name);
     const fileHandle = await root.getFileHandle(key, { create: true });
@@ -84,7 +84,7 @@ export class OPFS {
   }
 
   /** Read data from OPFS with the given key. */
-  async read(name: string): Promise<Uint8Array | null> {
+  async read(name: string): Promise<Uint8Array<ArrayBuffer> | null> {
     const file = await this.#getFile(name);
     if (!file) return null;
     return new Uint8Array(await file.arrayBuffer());
@@ -167,7 +167,7 @@ export async function cachedFetch(
   input: string | URL,
   init?: RequestInit,
   onProgress?: (progress: FetchProgress) => void,
-): Promise<Uint8Array> {
+): Promise<Uint8Array<ArrayBuffer>> {
   const url = typeof input === "string" ? input : String(input);
 
   const cachedData = await opfs.read(url);
@@ -191,7 +191,7 @@ export async function cachedFetch(
     totalBytes = undefined;
   let loadedBytes = 0;
 
-  let data: Uint8Array;
+  let data: Uint8Array<ArrayBuffer>;
   if (!resp.body) {
     data = new Uint8Array(); // Empty body
     onProgress?.({ loadedBytes, totalBytes: 0 });
@@ -209,7 +209,7 @@ export async function cachedFetch(
         },
       }),
     );
-    data = await new Response(trackedBody).bytes();
+    data = new Uint8Array(await new Response(trackedBody).bytes());
     onProgress?.({
       loadedBytes: data.byteLength,
       totalBytes: data.byteLength,

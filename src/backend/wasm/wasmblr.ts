@@ -358,7 +358,7 @@ export class CodeGenerator {
   }
 
   // Emit the complete module as an array of bytes.
-  finish(): Uint8Array {
+  finish(): Uint8Array<ArrayBuffer> {
     this.#curBytes = [];
     const emittedBytes: number[] = [];
     concat(emittedBytes, magicModuleHeader);
