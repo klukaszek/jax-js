@@ -1,5 +1,4 @@
-/// <reference types="@vitest/browser/providers/playwright" />
-
+import { playwright } from "@vitest/browser-playwright";
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
@@ -14,8 +13,8 @@ export default defineConfig({
       enabled: true,
       headless: true,
       screenshotFailures: false,
-      provider: "playwright",
-      // https://vitest.dev/guide/browser/playwright
+      provider: playwright(),
+      // https://vitest.dev/config/browser/playwright.html
       instances: [{ browser: "chromium" }],
     },
   },
