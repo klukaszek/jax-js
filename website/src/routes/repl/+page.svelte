@@ -7,6 +7,8 @@
   import type { Device } from "@jax-js/jax";
   import { SplitPane } from "@rich_harris/svelte-split-pane";
   import type { Plugin } from "@rollup/browser";
+  import { gunzipSync } from "fflate";
+  import { Base64 } from "js-base64";
   import {
     AlertTriangleIcon,
     ArrowRightIcon,
@@ -28,31 +30,49 @@
 
   const codeSamples: {
     title: string;
-    code: string;
+    id: string;
   }[] = [
-    { title: "Arrays", code: src["./01-arrays.ts"] },
-    { title: "Tracing Jaxprs", code: src["./02-tracing.ts"] },
-    { title: "Logistic regression", code: src["./03-logistic-regression.ts"] },
-    { title: "Mandelbrot set", code: src["./04-mandelbrot.ts"] },
+    { title: "Arrays", id: "01-arrays" },
+    { title: "Tracing Jaxprs", id: "02-tracing" },
+    { title: "Logistic regression", id: "03-logistic-regression" },
+    { title: "Mandelbrot set", id: "04-mandelbrot" },
   ];
 
-  function getSampleFromUrl(url: URL) {
-    const str = building ? "0" : (url.searchParams.get("sample") ?? "0");
-    const i = parseInt(str);
-    if (Number.isInteger(i) && i >= 0 && i < codeSamples.length) return i;
-    return 0;
+  interface URLSelection {
+    sample?: string;
+    content?: string;
   }
 
-  let selected = $state(getSampleFromUrl(page.url));
+  function getSelectionFromUrl(url: URL): URLSelection {
+    const selection: URLSelection = {};
+
+    if (!building) {
+      const sample = url.searchParams.get("sample");
+      if (sample && codeSamples.some((x) => x.id === sample)) {
+        selection.sample = sample;
+      }
+
+      const contentZipB64 = url.searchParams.get("content");
+      if (contentZipB64) {
+        const contentZip = Base64.toUint8Array(contentZipB64); // Supports URL-safe base64
+        selection.content = new TextDecoder().decode(gunzipSync(contentZip));
+      }
+    }
+
+    return selection;
+  }
+
+  let selectionOnLoad = getSelectionFromUrl(page.url);
+
+  let sample = $state(selectionOnLoad.sample);
   let device: Device = $state("webgpu");
   let replEditor: ReplEditor;
 
-  $effect(() => {
-    // When selected changes, update the query string in the URL.
-    if (selected !== getSampleFromUrl(page.url)) {
-      goto(page.url.pathname + `?sample=${selected}`, { replaceState: true });
-    }
-  });
+  function chooseSample(id: string) {
+    replEditor.setText(src[`./${id}.ts`]);
+    sample = id;
+    goto(page.url.pathname + `?sample=${sample}`, { replaceState: true });
+  }
 
   async function handleFormat() {
     const { formatWithCursor } = await import("prettier");
@@ -304,14 +324,11 @@
 
         <h2 class="text-lg mt-8 mb-2">Examples</h2>
         <div class="text-sm flex flex-col">
-          {#each codeSamples as { title, code }, i (i)}
+          {#each codeSamples as { title, id } (id)}
             <button
               class="px-2 py-1 text-left rounded flex items-center hover:bg-gray-100 active:bg-gray-200 transition-colors"
-              class:font-semibold={i === selected}
-              onclick={() => {
-                selected = i;
-                replEditor.setText(code);
-              }}
+              class:font-semibold={id === sample}
+              onclick={() => chooseSample(id)}
             >
               <span class="mr-2">
                 <ArrowRightIcon size={16} />
@@ -364,7 +381,9 @@
             </div> -->
             <div class="flex-1 min-h-0">
               <ReplEditor
-                initialText={codeSamples[selected].code}
+                initialText={selectionOnLoad.content !== undefined
+                  ? selectionOnLoad.content!
+                  : src[`./${sample ?? codeSamples[0].id}.ts`]}
                 bind:this={replEditor}
                 onformat={handleFormat}
                 onrun={handleRun}
