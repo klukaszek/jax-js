@@ -52,27 +52,41 @@ const y = np.dot(x.ref, x); // JIT-compiled into a matrix multiplication kernel
 
 ## Development
 
-Under construction.
+This repository is managed by [`pnpm`](https://pnpm.io/). You can compile and build all packages in
+watch mode with:
 
 ```bash
 pnpm install
 pnpm run build:watch
+```
 
-# Run tests
+Then you can run tests in a headless browser using [Vitest](https://vitest.dev/).
+
+```bash
 pnpm exec playwright install
 pnpm test
+```
+
+_We are currently on an older version of Playwright that supports using WebGPU in headless mode;
+newer versions seem to skip the WebGPU tests._
+
+To start a Vite dev server running the website, demos and REPL:
+
+```bash
+pnpm -C website dev
 ```
 
 ## Next on Eric's mind
 
 - Finish CLIP inference demo and associated features (depthwise convolution, vmap of gather, etc.)
-- Fix jit-of-grad returning very incorrect result
-- Improve perf of MNIST neural network
-  - Optimize conv2d further (maybe blocks -> local dims?)
-  - Add fused epilogue to JIT
-  - Reduce kernel overhead of constants / inline expressions
-- Investigate why jax-js Matmul is 2x slower on Safari TP than unroll kernel
-- How many threads to create per workgroup, depends on hardware
+- Performance
+  - Add `onnxruntime-web` to matmul and conv2d benchmarks
+  - Improve perf of MNIST neural network
+    - Optimize conv2d further (maybe blocks -> local dims?)
+    - Add fused epilogue to JIT
+    - Reduce kernel overhead of constants / inline expressions
+  - Investigate why jax-js Matmul is 2x slower on Safari TP than unroll kernel
+  - How many threads to create per workgroup, depends on hardware
 
 ## Milestones
 
@@ -103,6 +117,19 @@ pnpm test
   - [x] Better memory allocation that frees buffers
   - [ ] SIMD support for Wasm backend
   - [ ] Async / multithreading Wasm support
-- [ ] Device switching with `.to()` between webgpu/cpu/wasm
+- [ ] Full support of weak types and committed devices
+  - [ ] High-level ops have automatic type promotion
+  - [ ] Weak types - [ref](https://docs.jax.dev/en/latest/type_promotion.html#weak-types)
+  - [ ] Committed devices - [ref](https://docs.jax.dev/en/latest/sharded-computation.html#sharded-data-placement)
+  - [ ] Device switching with `device_put()` between webgpu/cpu/wasm
 - [ ] numpy/jax API compatibility table
-- [ ] Import tfjs models
+
+## Future work / help wanted
+
+Contributions are welcomed in the following areas:
+
+- Adding support for more JAX functions and operations (e.g., `trace()`, `fft()`, `qr()`, …)
+- Improving performance of the WebGPU and Wasm runtimes, generating better kernels, using SIMD and multithreading
+- Adding WebGL runtime for older browsers that don't support WebGPU
+- Making a great transformer inference engine, comparing against onnxruntime-web
+- Ergonomics and API improvements
