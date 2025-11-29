@@ -1,4 +1,11 @@
-import { devices, grad, init, nn, numpy as np, setDevice } from "@jax-js/jax";
+import {
+  defaultDevice,
+  devices,
+  grad,
+  init,
+  nn,
+  numpy as np,
+} from "@jax-js/jax";
 import { beforeEach, expect, suite, test } from "vitest";
 
 const devicesAvailable = await init();
@@ -7,7 +14,7 @@ suite.each(devices)("device:%s", (device) => {
   const skipped = !devicesAvailable.includes(device);
   beforeEach(({ skip }) => {
     if (skipped) skip();
-    setDevice(device);
+    defaultDevice(device);
   });
 
   suite("jax.nn.relu()", () => {

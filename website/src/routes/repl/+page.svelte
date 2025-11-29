@@ -213,10 +213,10 @@
 
     const devices = await jax.init();
     if (devices.includes(device)) {
-      jax.setDevice(device);
+      jax.defaultDevice(device);
     } else {
       mockConsole.warn(`${device} not supported, falling back to Wasm`);
-      jax.setDevice("wasm");
+      jax.defaultDevice("wasm");
     }
 
     const userCode = replEditor.getText();

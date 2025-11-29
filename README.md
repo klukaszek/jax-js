@@ -38,13 +38,13 @@ const xgrad = grad(norm)(x); // [2, 4, 6]
 ```
 
 The default backend runs on CPU, but on [supported browsers](https://caniuse.com/webgpu),
-you can switch to GPU for maximum performance.
+you can switch to GPU for better performance.
 
 ```js
-import { numpy as np, setDevice } from "@jax-js/jax";
+import { defaultDevice, numpy as np } from "@jax-js/jax";
 
 // Change the default backend to GPU.
-setDevice("webgpu");
+defaultDevice("webgpu");
 
 const x = np.ones([4096, 4096]);
 const y = np.dot(x.ref, x); // JIT-compiled into a matrix multiplication kernel

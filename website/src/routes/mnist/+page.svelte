@@ -1,12 +1,12 @@
 <script lang="ts">
   import {
+    defaultDevice,
     init,
     jit,
     lax,
     nn,
     numpy as np,
     random,
-    setDevice,
     tree,
     valueAndGrad,
   } from "@jax-js/jax";
@@ -330,7 +330,7 @@
 
   onMount(async () => {
     await init("webgpu");
-    setDevice("webgpu");
+    defaultDevice("webgpu");
 
     ctx = canvas.getContext("2d", { willReadFrequently: true })!;
     ctx.fillStyle = "white";

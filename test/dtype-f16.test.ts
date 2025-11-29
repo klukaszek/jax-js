@@ -1,6 +1,6 @@
 // Tests for the f16 data type.
 
-import { grad, init, jit, jvp, numpy as np, setDevice } from "@jax-js/jax";
+import { defaultDevice, grad, init, jit, jvp, numpy as np } from "@jax-js/jax";
 import { beforeEach, expect, suite, test } from "vitest";
 
 // f16 is currently only supported on WebGPU.
@@ -12,7 +12,7 @@ suite.each(devices)("device:%s", (device) => {
   const skipped = !devicesAvailable.includes(device);
   beforeEach(({ skip }) => {
     if (skipped) skip();
-    setDevice(device);
+    defaultDevice(device);
   });
 
   test("create and access f16 array", async () => {

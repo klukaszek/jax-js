@@ -1,13 +1,13 @@
 // Tests for convolution-related operations.
 
 import {
+  defaultDevice,
   devices,
   grad,
   init,
   jit,
   lax,
   numpy as np,
-  setDevice,
 } from "@jax-js/jax";
 import { beforeEach, expect, suite, test } from "vitest";
 
@@ -17,7 +17,7 @@ suite.each(devices)("device:%s", (device) => {
   const skipped = !devicesAvailable.includes(device);
   beforeEach(({ skip }) => {
     if (skipped) skip();
-    setDevice(device);
+    defaultDevice(device);
   });
 
   test("1d convolution", () => {

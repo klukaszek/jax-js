@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { init, jit, numpy as np, setDevice, tree } from "@jax-js/jax";
+  import { defaultDevice, init, jit, numpy as np, tree } from "@jax-js/jax";
   import { cachedFetch, opfs, safetensors, tokenizers } from "@jax-js/loaders";
   import { FileTextIcon, ImageIcon } from "lucide-svelte";
 
@@ -74,7 +74,7 @@
     if (isDownloading) return;
 
     await init("webgpu");
-    setDevice("webgpu");
+    defaultDevice("webgpu");
 
     try {
       if (!weights) {

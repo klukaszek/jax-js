@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { init, jit, numpy as np, setDevice } from "@jax-js/jax";
+  import { init, jit, numpy as np, defaultDevice } from "@jax-js/jax";
   import { onMount } from "svelte";
 
   const width = 1000;
@@ -9,7 +9,7 @@
 
   onMount(async () => {
     await init("webgpu");
-    setDevice("webgpu");
+    defaultDevice("webgpu");
   });
 
   function mandelbrotIteration(

@@ -1,6 +1,6 @@
 import { beforeEach, expect, suite, test } from "vitest";
 
-import { devices, init, setDevice } from "../backend";
+import { defaultDevice, devices, init } from "../backend";
 import { arange, array, eye, ones, scalar, zeros } from "./array";
 import { DType } from "../alu";
 
@@ -11,7 +11,7 @@ suite.each(devices)("device:%s", (device) => {
 
   beforeEach(({ skip }) => {
     if (skipped) skip();
-    setDevice(device);
+    defaultDevice(device);
   });
 
   test("can construct zeros()", async () => {

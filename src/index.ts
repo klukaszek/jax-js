@@ -1,4 +1,4 @@
-import { Device, devices, init, setDevice } from "./backend";
+import { defaultDevice, Device, devices, init } from "./backend";
 import * as jaxprModule from "./frontend/jaxpr";
 import { Jaxpr, OwnedFunction } from "./frontend/jaxpr";
 import * as jvpModule from "./frontend/jvp";
@@ -16,6 +16,7 @@ import "./polyfills";
 
 export {
   init,
+  defaultDevice,
   type Device,
   devices,
   DType,
@@ -27,7 +28,6 @@ export {
   numpy,
   type OwnedFunction,
   random,
-  setDevice,
   tree,
 };
 

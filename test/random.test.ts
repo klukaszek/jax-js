@@ -1,4 +1,4 @@
-import { devices, init, numpy as np, random, setDevice } from "@jax-js/jax";
+import { defaultDevice, devices, init, numpy as np, random } from "@jax-js/jax";
 import { beforeEach, expect, suite, test } from "vitest";
 
 const devicesAvailable = await init();
@@ -7,7 +7,7 @@ suite.each(devices)("device:%s", (device) => {
   const skipped = !devicesAvailable.includes(device);
   beforeEach(({ skip }) => {
     if (skipped) skip();
-    setDevice(device);
+    defaultDevice(device);
   });
 
   test("random bits", () => {

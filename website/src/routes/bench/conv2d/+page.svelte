@@ -280,7 +280,7 @@ fn main(@builtin(global_invocation_id) global_id : vec3<u32>) {
     async run(): Promise<number> {
       const jax = await import("@jax-js/jax");
       await jax.init();
-      jax.setDevice("webgpu");
+      jax.defaultDevice("webgpu");
       const np = jax.numpy;
 
       const input = np
