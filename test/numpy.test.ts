@@ -1056,7 +1056,7 @@ suite.each(devices)("device:%s", (device) => {
       const atanvals: number[] = np.atan(np.array(vals)).js();
       for (let i = 0; i < vals.length; i++) {
         console.log(vals, atanvals);
-        expect(atanvals[i]).toBeCloseTo(Math.atan(vals[i]), 2);
+        expect(atanvals[i]).toBeCloseTo(Math.atan(vals[i]), 5);
       }
     });
 
@@ -1065,8 +1065,8 @@ suite.each(devices)("device:%s", (device) => {
       const asinvals: number[] = np.asin(np.array(vals)).js();
       const acosvals: number[] = np.acos(np.array(vals)).js();
       for (let i = 0; i < vals.length; i++) {
-        expect(asinvals[i]).toBeCloseTo(Math.asin(vals[i]), 2);
-        expect(acosvals[i]).toBeCloseTo(Math.acos(vals[i]), 2);
+        expect(asinvals[i]).toBeCloseTo(Math.asin(vals[i]), 5);
+        expect(acosvals[i]).toBeCloseTo(Math.acos(vals[i]), 5);
       }
     });
 

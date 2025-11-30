@@ -383,27 +383,33 @@ function _atan(cg: CodeGenerator) {
   cg.f32.mul();
   cg.local.set(z2);
 
-  // Padé [5/2] rational approximation: atan(z) ≈ z * P(z^2) / Q(z^2)
-  // P(u) = -4*u^2 + 40*u + 105, where u = z^2
-  // Q(u) = 75*u + 105
-  // From Wu & Bercu (2017), max error ~1e-3 on [0,1]
+  // Rational approximation: atan(z) ≈ z * P(z^2) / Q(z^2)
+  // P(u) = A0 + A1*u + A2*u^2, where u = z^2
+  // Q(u) = 1 + B1*u + B2*u^2
+  // Fitted coefficients (max error ~5e-7 on [0,1]):
+  //   A0 = 0.999998614341, A1 = 0.661705427875, A2 = 0.0415796528637
+  //   B1 = 0.994987933645, B2 = 0.173698870181
 
-  // Compute P(z^2) = 105 + z^2*(40 + z^2*(-4))
-  cg.f32.const(-4.0);
+  // Compute P(z^2) = A0 + z^2*(A1 + z^2*A2)
+  cg.f32.const(0.0415796528637);
   cg.local.get(z2);
   cg.f32.mul();
-  cg.f32.const(40.0);
+  cg.f32.const(0.661705427875);
   cg.f32.add();
   cg.local.get(z2);
   cg.f32.mul();
-  cg.f32.const(105.0);
+  cg.f32.const(0.999998614341);
   cg.f32.add();
 
-  // Compute Q(z^2) = 105 + 75*z^2
-  cg.f32.const(75.0);
+  // Compute Q(z^2) = 1.0 + z^2*(B1 + z^2*B2)
+  cg.f32.const(0.173698870181);
   cg.local.get(z2);
   cg.f32.mul();
-  cg.f32.const(105.0);
+  cg.f32.const(0.994987933645);
+  cg.f32.add();
+  cg.local.get(z2);
+  cg.f32.mul();
+  cg.f32.const(1.0);
   cg.f32.add();
 
   // result = z * (P / Q)
@@ -430,11 +436,11 @@ function _atan(cg: CodeGenerator) {
 /**
  * Approximate atan(x).
  *
- * Method: if |x| < 1, use Padé [5/2] approximation: atan(x) ≈ x * P(x^2) / Q(x^2)
- *         where P(u) = -4*u^2 + 40*u + 105
- *               Q(u) = 75*u + 105
+ * Method: if |x| < 1, use rational approximation: atan(x) ≈ x * P(x^2) / Q(x^2)
+ *         where P(u) = A0 + A1*u + A2*u^2 (degree 2)
+ *               Q(u) = 1 + B1*u + B2*u^2 (degree 2)
  *         if |x| >= 1, use: atan(x) = sign(x)*π/2 - atan(1/x)
- *         (Wu & Bercu 2017, max error ~1e-3 on [0,1])
+ *         (fitted coefficients, max error ~5e-7 on [0,1])
  */
 export function wasm_atan(cg: CodeGenerator): number {
   return cg.function([cg.f32], [cg.f32], () => {
