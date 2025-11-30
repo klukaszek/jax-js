@@ -1,7 +1,16 @@
 // Port of the `jax.random` module.
 
 import { bitcast, randomBits } from "./frontend/core";
-import { array, Array, cos, DType, log, sqrt, stack, subtract } from "./numpy";
+import {
+  array,
+  Array,
+  cos,
+  DType,
+  log1p,
+  negative,
+  sqrt,
+  stack,
+} from "./numpy";
 
 function validateKeyShape(key: Array): number[] {
   if (key.ndim === 0) {
@@ -82,6 +91,12 @@ export function uniform(
   }
 }
 
+/** Sample exponential random values according to `p(x) = exp(-x)`. */
+export function exponential(key: Array, shape: number[] = []): Array {
+  const u = uniform(key, shape);
+  return negative(log1p(negative(u))) as Array; // log(1-u) to avoid log(0)
+}
+
 /**
  * Sample random values according to `p(x) = 1/sqrt(2pi) * exp(-x^2/2)`.
  *
@@ -95,9 +110,9 @@ export function normal(key: Array, shape: number[] = []): Array {
   //   z1 = sqrt(-2 * log(u1)) * sin(2pi * u2)
   // We only use z0 for simplicity.
   const [k1, k2] = split(key, 2);
-  const u1 = subtract(1, uniform(k1, shape));
+  const u1 = uniform(k1, shape);
   const u2 = uniform(k2, shape);
-  const radius = sqrt(log(u1).mul(-2));
+  const radius = sqrt(log1p(negative(u1)).mul(-2)); // taking 1-u1 to avoid log(0)
   const theta = u2.mul(2 * Math.PI);
   return radius.mul(cos(theta)) as Array;
 }
