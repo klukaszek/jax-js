@@ -16,6 +16,7 @@ import "./polyfills";
 
 export {
   init,
+  Array,
   defaultDevice,
   type Device,
   devices,

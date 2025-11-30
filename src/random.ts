@@ -1,7 +1,7 @@
 // Port of the `jax.random` module.
 
 import { bitcast, randomBits } from "./frontend/core";
-import { array, Array, DType, stack } from "./numpy";
+import { array, Array, cos, DType, log, sqrt, stack, subtract } from "./numpy";
 
 function validateKeyShape(key: Array): number[] {
   if (key.ndim === 0) {
@@ -80,4 +80,24 @@ export function uniform(
   } else {
     return rand.mul(maxval - minval).add(minval);
   }
+}
+
+/**
+ * Sample random values according to `p(x) = 1/sqrt(2pi) * exp(-x^2/2)`.
+ *
+ * Unlike JAX, this uses the Box-Muller transform. JAX uses the erf_inv primitive instead and
+ * directly inverts the CDF, but we don't have support for that yet. Outputs will not be
+ * bitwise identical to JAX.
+ */
+export function normal(key: Array, shape: number[] = []): Array {
+  // Box-Muller transform:
+  //   z0 = sqrt(-2 * log(u1)) * cos(2pi * u2)
+  //   z1 = sqrt(-2 * log(u1)) * sin(2pi * u2)
+  // We only use z0 for simplicity.
+  const [k1, k2] = split(key, 2);
+  const u1 = subtract(1, uniform(k1, shape));
+  const u2 = uniform(k2, shape);
+  const radius = sqrt(log(u1).mul(-2));
+  const theta = u2.mul(2 * Math.PI);
+  return radius.mul(cos(theta)) as Array;
 }

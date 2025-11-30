@@ -61,4 +61,22 @@ suite.each(devices)("device:%s", (device) => {
     const x = random.uniform(random.key(51), [4]);
     expect(x).toBeAllclose([0.471269, 0.12344253, 0.17550635, 0.5663593]);
   });
+
+  test("normal distribution", () => {
+    const key = random.key(123);
+    const count = 5000;
+    const values: number[] = random.normal(key, [count]).js();
+    let onesigma = 0;
+    let twosigma = 0;
+    let threesigma = 0;
+    for (const v of values) {
+      if (Math.abs(v) <= 1) onesigma++;
+      if (Math.abs(v) <= 2) twosigma++;
+      if (Math.abs(v) <= 3) threesigma++;
+    }
+    // Approximately 68.27% within 1σ, 95.45% within 2σ, 99.73% within 3σ.
+    expect(onesigma / count).toBeCloseTo(0.6827);
+    expect(twosigma / count).toBeCloseTo(0.9545);
+    expect(threesigma / count).toBeCloseTo(0.9973);
+  });
 });

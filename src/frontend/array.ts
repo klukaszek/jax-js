@@ -1221,7 +1221,7 @@ export function eye(
   );
 }
 
-/** Return the identity array, with ones on the main diagonal. */
+/** Return the identity matrix, with ones on the main diagonal. */
 export function identity(
   n: number,
   { dtype, device }: DTypeAndDevice = {},
