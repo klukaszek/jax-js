@@ -4,12 +4,12 @@
   import type { Tensor4D } from "@tensorflow/tfjs";
 
   const batchSize = 1;
-  const channels = 32;
+  const channels = 64;
   const height = 256;
   const width = 256;
   const filterHeight = 3;
   const filterWidth = 3;
-  const outChannels = 64;
+  const outChannels = 128;
 
   let result: Record<string, number> = $state({});
 
