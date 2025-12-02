@@ -711,10 +711,10 @@ fn main(@builtin(global_invocation_id) global_id : vec3<u32>) {
     name: string;
     dtype: "fp16" | "fp32";
 
-    constructor(dtype: "fp16" | "fp32") {
+    constructor(fp16: boolean = false) {
       super();
-      this.name = `onnx-${dtype}`;
-      this.dtype = dtype;
+      this.name = fp16 ? "onnx-fp16" : "onnx";
+      this.dtype = fp16 ? "fp16" : "fp32";
     }
 
     // Helper function to create a simple ONNX model with just a MatMul operation
@@ -824,9 +824,6 @@ fn main(@builtin(global_invocation_id) global_id : vec3<u32>) {
         const tensorA = new ort.Tensor(ortType, buffer, [n, n]);
         const tensorB = new ort.Tensor(ortType, buffer, [n, n]);
 
-        // Warm-up run to ensure everything is loaded
-        await session.run({ A: tensorA, B: tensorB });
-
         // Actual benchmark run
         performance.mark("onnx-start");
         const start = performance.now();
@@ -902,8 +899,8 @@ fn main(@builtin(global_invocation_id) global_id : vec3<u32>) {
     new Unroll4x4Strategy(8, 8),
     new Unroll4x4Strategy(8, 16),
     new Unroll4x4Strategy(16, 16),
-    new OnnxStrategy("fp16"),
-    new OnnxStrategy("fp32"),
+    new OnnxStrategy(),
+    new OnnxStrategy(true),
     new TfjsStrategy(),
     new JaxJsStrategy(),
     new JaxJsStrategy(true),
@@ -913,6 +910,7 @@ fn main(@builtin(global_invocation_id) global_id : vec3<u32>) {
 
   async function bench(variant: string) {
     console.log(`Running ${variant}...`);
+    await strategies[variant].run(); // warmup
     const time = await strategies[variant].run();
     if (time >= 0) {
       result[variant] = time;
@@ -926,7 +924,7 @@ fn main(@builtin(global_invocation_id) global_id : vec3<u32>) {
   <h1 class="text-2xl mb-2">matmul benchmark</h1>
 
   <p class="mb-2">
-    Running a few different WebGPU matmul programs on {n}x{n} matrices.
+    Benchmarking fp32 matmul kernels on {n}x{n} matrices.
   </p>
 
   <ul class="list-disc list-inside text-sm pl-4 mb-4">

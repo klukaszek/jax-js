@@ -250,6 +250,7 @@ fn main(@builtin(global_invocation_id) global_id : vec3<u32>) {
       const filter = tf.transpose(filterOIHW, [2, 3, 1, 0]); // OIHW -> HWIO
       await Promise.all([input.data(), filter.data()]);
 
+      performance.mark("tfjs-start");
       const start = performance.now();
       const output = tf
         .conv2d(input, filter, 1, "same", "NHWC")
@@ -257,6 +258,8 @@ fn main(@builtin(global_invocation_id) global_id : vec3<u32>) {
       const ar = (await output.data()) as Float32Array;
       printBufferItems(ar);
       const time = performance.now() - start;
+      performance.mark("tfjs-end");
+      performance.measure("tfjs", "tfjs-start", "tfjs-end");
 
       input.dispose();
       filterOIHW.dispose();
@@ -271,10 +274,10 @@ fn main(@builtin(global_invocation_id) global_id : vec3<u32>) {
     name: string;
     dtype: "fp16" | "fp32";
 
-    constructor(dtype: "fp16" | "fp32") {
+    constructor(fp16: boolean = false) {
       super();
-      this.name = `onnx-${dtype}`;
-      this.dtype = dtype;
+      this.name = fp16 ? "onnx-fp16" : "onnx";
+      this.dtype = fp16 ? "fp16" : "fp32";
     }
 
     // Helper function to create a simple ONNX model with a Conv operation
@@ -431,10 +434,8 @@ fn main(@builtin(global_invocation_id) global_id : vec3<u32>) {
           filterWidth,
         ]);
 
-        // Warm-up run to ensure everything is loaded
-        await session.run({ input: tensorInput, filter: tensorFilter });
-
         // Actual benchmark run
+        performance.mark("onnx-start");
         const start = performance.now();
         const results = await session.run({
           input: tensorInput,
@@ -443,6 +444,7 @@ fn main(@builtin(global_invocation_id) global_id : vec3<u32>) {
         const outputData = results.output.data as Float32Array;
         printBufferItems(outputData);
         const time = performance.now() - start;
+        performance.mark("onnx-end");
 
         return time / 1000; // seconds
       } catch (error) {
@@ -485,19 +487,14 @@ fn main(@builtin(global_invocation_id) global_id : vec3<u32>) {
         .astype(this.fp16 ? np.float16 : np.float32);
       await jax.blockUntilReady([input, filter]);
 
+      performance.mark("jax-start");
       const start = performance.now();
-      const output = jax.lax.convGeneralDilated(
-        input,
-        filter,
-        [1, 1], // strides
-        [
-          [1, 1],
-          [1, 1],
-        ], // padding
-      );
+      const output = jax.lax.convGeneralDilated(input, filter, [1, 1], "SAME");
       const ar = (await output.data()) as Float32Array;
       printBufferItems(ar);
       const time = performance.now() - start;
+      performance.mark("jax-end");
+      performance.measure("jax", "jax-start", "jax-end");
 
       return time / 1000;
     }
@@ -507,8 +504,8 @@ fn main(@builtin(global_invocation_id) global_id : vec3<u32>) {
     new NaiveStrategy(8),
     new NaiveStrategy(16),
     new NaiveStrategy(32),
-    new OnnxStrategy("fp16"),
-    new OnnxStrategy("fp32"),
+    new OnnxStrategy(),
+    new OnnxStrategy(true),
     new TfjsStrategy(),
     new JaxJsStrategy(),
     new JaxJsStrategy(true),
@@ -518,6 +515,7 @@ fn main(@builtin(global_invocation_id) global_id : vec3<u32>) {
 
   async function bench(variant: string) {
     console.log(`Running ${variant}...`);
+    await strategies[variant].run(); // warmup
     const time = await strategies[variant].run();
     if (time >= 0) {
       result[variant] = time;
@@ -531,7 +529,7 @@ fn main(@builtin(global_invocation_id) global_id : vec3<u32>) {
   <h1 class="text-2xl mb-2">conv2d benchmark</h1>
 
   <p class="mb-2">
-    Running different WebGPU conv2d implementations on {batchSize}x{channels}x{height}x{width}
+    Benchmarking fp32 conv2d kernels on {batchSize}x{channels}x{height}x{width}
     input with {outChannels} filters of size {filterHeight}x{filterWidth}.
   </p>
 
