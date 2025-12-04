@@ -1,7 +1,7 @@
 <script lang="ts">
   import { building } from "$app/environment";
   import { afterNavigate, goto } from "$app/navigation";
-  import { base } from "$app/paths";
+  import { resolve } from "$app/paths";
   import { page } from "$app/state";
 
   import type { Device, numpy as np } from "@jax-js/jax";
@@ -418,7 +418,7 @@
         style:scrollbar-width="thin"
       >
         <h1 class="text-xl font-light mb-4">
-          <a target="_blank" href="{base}/"
+          <a target="_blank" href={resolve("/")}
             ><span class="font-medium">jax-js</span> REPL</a
           >
         </h1>

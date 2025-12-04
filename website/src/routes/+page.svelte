@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { base } from "$app/paths";
+  import { resolve } from "$app/paths";
 
   import { ArrowUpRight } from "lucide-svelte";
 
@@ -28,7 +28,7 @@
   class="px-6 py-4 flex items-center justify-between max-w-screen-xl mx-auto font-tiktok"
 >
   <div class="flex items-center gap-3">
-    <a href="{base}/">
+    <a href={resolve("/")}>
       <img src={logo} alt="jax-js logo" class="h-8" />
     </a>
   </div>
@@ -38,7 +38,7 @@
       target="_blank"
       class="hover:text-primary">GitHub</a
     >
-    <a href="{base}/repl" class="hover:text-primary">REPL</a>
+    <a href={resolve("/repl")} class="hover:text-primary">REPL</a>
     <a
       rel="external"
       target="_blank"
@@ -218,7 +218,7 @@ console.log(y.js());
       </a>
 
       <a
-        href="{base}/repl"
+        href={resolve("/repl")}
         class="bg-primary/5 hover:bg-primary/15 transition-colors p-4 rounded-lg"
       >
         <h3 class="mb-2">
