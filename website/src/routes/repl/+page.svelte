@@ -4,24 +4,20 @@
   import { resolve } from "$app/paths";
   import { page } from "$app/state";
 
-  import type { Device, numpy as np } from "@jax-js/jax";
+  import type { Device } from "@jax-js/jax";
   import { SplitPane } from "@rich_harris/svelte-split-pane";
-  import type { Plugin } from "@rollup/browser";
   import {
-    AlertTriangleIcon,
     ArrowRightIcon,
-    ChevronRightIcon,
-    ImageIcon,
-    InfoIcon,
     LoaderIcon,
     PaletteIcon,
     PlayIcon,
     ShareIcon,
-    XIcon,
   } from "lucide-svelte";
 
+  import ConsoleLine from "$lib/repl/ConsoleLine.svelte";
   import ReplEditor from "$lib/repl/ReplEditor.svelte";
   import { decodeContent, encodeContent } from "$lib/repl/encode";
+  import { ReplRunner } from "$lib/repl/runner.svelte";
 
   const src: Record<string, string> = import.meta.glob("./*.ts", {
     eager: true,
@@ -57,6 +53,10 @@
       if (contentZipB64) {
         selection.content = decodeContent(contentZipB64);
       }
+
+      if (!selection.content && !selection.sample) {
+        selection.sample = codeSamples[0].id;
+      }
     }
 
     return selection;
@@ -67,6 +67,10 @@
   let sample = $state(selectionOnLoad.sample);
   let device: Device = $state("webgpu");
   let replEditor: ReplEditor;
+  let replRunner = new ReplRunner();
+
+  let consoleLines = $derived(replRunner.consoleLines);
+  let mockConsole = replRunner.mockConsole;
 
   afterNavigate(({ type }) => {
     if (type === "enter") return; // Already handled on load
@@ -121,276 +125,8 @@
   }
 
   async function handleRun() {
-    if (running) return;
-    running = true;
-
-    const [jax, optax, loaders] = await Promise.all([
-      import("@jax-js/jax"),
-      import("@jax-js/optax"),
-      import("@jax-js/loaders"),
-    ]);
-    const ts = await import("typescript");
-    const { rollup } = await import("@rollup/browser");
-
-    // Builtins for the REPL environment.
-    const np = jax.numpy;
-    const displayImage = async (ar: np.Array) => {
-      if (ar.ndim !== 2 && ar.ndim !== 3) {
-        throw new Error(
-          "displayImage() only supports 2D (H, W) or 3D (H, W, C) array",
-        );
-      }
-      await ar.blockUntilReady();
-
-      if (ar.ndim === 2) {
-        // If 2D, convert to (H, W, 1)
-        ar = ar.reshape([...ar.shape, 1]);
-      }
-      const height = ar.shape[0];
-      const width = ar.shape[1];
-      const channels = ar.shape[2];
-
-      if (ar.dtype === np.float32 || ar.dtype === np.float16) {
-        // If float32, normalize [0, 1) to [0, 256)
-        ar = np.clip(ar.mul(256), 0, 255).astype(np.uint32);
-      } else if (ar.dtype === np.bool) {
-        // If bool, convert to 0 or 255
-        ar = ar.astype(np.uint32).mul(255);
-      }
-
-      let rgbaArray: np.Array;
-      if (channels === 1) {
-        ar = np.repeat(ar, 3, 2);
-        const alphas = np.full([height, width, 1], 255, {
-          dtype: ar.dtype,
-          device: ar.device,
-        });
-        rgbaArray = np.concatenate([ar, alphas], 2);
-      } else if (channels === 3) {
-        const alphas = np.full([height, width, 1], 255, {
-          dtype: ar.dtype,
-          device: ar.device,
-        });
-        rgbaArray = np.concatenate([ar, alphas], 2);
-      } else if (channels === 4) {
-        rgbaArray = ar;
-      } else {
-        throw new Error(
-          "displayImage() only supports 1, 3, or 4 channels in the last dimension",
-        );
-      }
-
-      const buf = await rgbaArray.data();
-      const dataArray = new Uint8ClampedArray(buf);
-      const imageData = new ImageData(dataArray, width, height, {
-        colorSpace: "srgb",
-      });
-
-      // Create a temporary <canvas> to draw and produce a data URL.
-      const canvas = document.createElement("canvas");
-      canvas.width = width;
-      canvas.height = height;
-      const ctx = canvas.getContext("2d")!;
-      ctx.putImageData(imageData, 0, 0);
-      const dataUrl = canvas.toDataURL();
-
-      // Append the image to the console output.
-      consoleLines.push({
-        level: "image",
-        data: [dataUrl],
-        time: Date.now(),
-      });
-    };
-
-    mockConsole.clear();
-
-    const devices = await jax.init();
-    if (devices.includes(device)) {
-      jax.defaultDevice(device);
-    } else {
-      mockConsole.warn(`${device} not supported, falling back to Wasm`);
-      jax.defaultDevice("wasm");
-    }
-
-    const userCode = replEditor.getText();
-
-    // Create a simple virtual module plugin to resolve our in-memory modules.
-    const virtualPlugin: Plugin = {
-      name: "virtual",
-      resolveId(id) {
-        // We treat 'index.ts' as the user code entry point.
-        if (id === "index.ts") {
-          return id;
-        } else {
-          throw new Error("Module not found: " + id);
-        }
-      },
-      load(id) {
-        if (id === "index.ts") {
-          return userCode;
-        } else {
-          return null;
-        }
-      },
-    };
-
-    const typescriptPlugin: Plugin = {
-      name: "typescript",
-      transform(code, id) {
-        if (id.endsWith(".ts")) {
-          return ts.transpileModule(code, {
-            compilerOptions: {
-              module: ts.ModuleKind.ESNext,
-              target: ts.ScriptTarget.ES2022,
-            },
-          }).outputText;
-        }
-        return null;
-      },
-    };
-
-    try {
-      // Use @rollup/browser to bundle the code.
-      const bundle = await rollup({
-        input: "index.ts",
-        plugins: [typescriptPlugin, virtualPlugin],
-        external: ["@jax-js/jax", "@jax-js/optax", "@jax-js/loaders"],
-      });
-
-      // We use the "system" format because it allows you to use async/await.
-      // https://rollupjs.org/repl/
-      const { output } = await bundle.generate({
-        file: "bundle.js",
-        format: "system",
-      });
-
-      const header = `
-      const console = _BUILTINS.console;
-      const displayImage = _BUILTINS.displayImage;
-
-      const System = { register(externals, f) {
-        const { execute, setters } = f();
-        for (let i = 0; i < externals.length; i++) {
-          setters[i](_MODULES[externals[i]]);
-        }
-        this.f = execute;
-      } };`;
-      const trailer = `;await (async () => System.f())()`;
-      const bundledCode = header + output[0].code + trailer;
-
-      // AsyncFunction constructor, analogous to Function.
-      const AsyncFunction: typeof Function = async function () {}
-        .constructor as any;
-
-      await new AsyncFunction("_MODULES", "_BUILTINS", bundledCode)(
-        // _MODULES
-        {
-          "@jax-js/jax": jax,
-          "@jax-js/optax": optax,
-          "@jax-js/loaders": loaders,
-        },
-        // _BUILTINS
-        {
-          console: mockConsole,
-          displayImage: displayImage,
-        },
-      );
-    } catch (e: any) {
-      mockConsole.error(e);
-    } finally {
-      running = false;
-    }
+    await replRunner.runProgram(replEditor.getText(), device);
   }
-
-  type ConsoleLine = {
-    level: "log" | "info" | "warn" | "error" | "image";
-    data: string[];
-    time: number;
-  };
-
-  let consoleLines: ConsoleLine[] = $state([]);
-  let running = $state(false);
-
-  // Intercepted methods similar to console.log().
-  const consoleMethods = [
-    "clear",
-    "error",
-    "info",
-    "log",
-    "time",
-    "timeEnd",
-    "timeLog",
-    "trace",
-    "warn",
-  ] as const;
-  const consoleTimers = new Map<string, number>();
-
-  function handleMockConsole(
-    method: (typeof consoleMethods)[number],
-    ...args: any[]
-  ) {
-    if (
-      method === "log" ||
-      method === "info" ||
-      method === "warn" ||
-      method === "error"
-    ) {
-      consoleLines.push({
-        level: method,
-        data: args.map((x) =>
-          typeof x === "string"
-            ? x
-            : x instanceof Error
-              ? x.toString()
-              : JSON.stringify(x, null, 2),
-        ),
-        time: Date.now(),
-      });
-    } else if (method === "clear") {
-      consoleLines = [];
-    } else if (method === "trace") {
-      consoleLines.push({
-        level: "error",
-        data: ["Received stack trace, see console for details."],
-        time: Date.now(),
-      });
-    } else if (method === "time") {
-      consoleTimers.set(args[0], performance.now());
-    } else if (method === "timeLog") {
-      const start = consoleTimers.get(args[0]);
-      if (start !== undefined) {
-        const elapsed = performance.now() - start;
-        consoleLines.push({
-          level: "log",
-          data: [`${args[0]}: ${elapsed.toFixed(1)}ms`],
-          time: Date.now(),
-        });
-      }
-    } else if (method === "timeEnd") {
-      const start = consoleTimers.get(args[0]);
-      if (start !== undefined) {
-        const elapsed = performance.now() - start;
-        consoleLines.push({
-          level: "log",
-          data: [`${args[0]}: ${elapsed.toFixed(1)}ms - timer ended`],
-          time: Date.now(),
-        });
-        consoleTimers.delete(args[0]);
-      }
-    }
-  }
-
-  const mockConsole = new Proxy(console, {
-    get(target, prop, receiver) {
-      if (consoleMethods.some((m) => m === prop)) {
-        return (...args: any[]) => {
-          handleMockConsole(prop as any, ...args);
-          Reflect.get(target, prop, receiver)(...args);
-        };
-      }
-      return Reflect.get(target, prop, receiver);
-    },
-  });
 </script>
 
 <svelte:head>
@@ -461,7 +197,7 @@
               <button
                 class="bg-emerald-100 hover:bg-emerald-200 active:scale-105 transition-all rounded-md text-sm px-3 py-0.5 flex items-center disabled:opacity-50"
                 onclick={handleRun}
-                disabled={running}
+                disabled={replRunner.running}
               >
                 <PlayIcon size={14} class="mr-1.5" />
                 Run
@@ -491,9 +227,6 @@
                 <option value="cpu">CPU (slow)</option>
               </select>
             </div>
-            <!-- <div class="ml-4 text-sm text-gray-700 pb-1 flex items-center">
-              <FileIcon size={14} class="mr-1 text-sky-600" /> index.ts
-            </div> -->
             <div class="flex-1 min-h-0">
               <ReplEditor
                 initialText={selectionOnLoad.content !== undefined
@@ -510,7 +243,7 @@
           <div class="flex flex-col h-full">
             <p class="text-gray-500 text-sm py-2 px-4 select-none shrink-0">
               Console
-              {#if running}
+              {#if replRunner.running}
                 <LoaderIcon
                   size={16}
                   class="inline-block animate-spin ml-1 mb-[3px]"
@@ -524,50 +257,7 @@
               style:scrollbar-width="thin"
             >
               {#each consoleLines as line, i (i)}
-                <div
-                  class={[
-                    "py-0.5 border-t flex items-start gap-x-2",
-                    line.level === "error"
-                      ? "border-red-200 bg-red-50"
-                      : line.level === "warn"
-                        ? "border-yellow-200 bg-yellow-50"
-                        : "border-gray-200",
-                  ]}
-                >
-                  {#if line.level === "log"}
-                    <ChevronRightIcon
-                      size={18}
-                      class="shrink-0 text-gray-300"
-                    />
-                  {:else if line.level === "info"}
-                    <InfoIcon size={18} class="shrink-0 text-blue-500" />
-                  {:else if line.level === "warn"}
-                    <AlertTriangleIcon
-                      size={18}
-                      class="shrink-0 text-yellow-500"
-                    />
-                  {:else if line.level === "error"}
-                    <XIcon size={18} class="shrink-0 text-red-500" />
-                  {:else if line.level === "image"}
-                    <ImageIcon size={18} class="shrink-0 text-gray-400" />
-                  {/if}
-                  <p class="font-mono whitespace-pre-wrap">
-                    {#if line.level === "image"}
-                      <img
-                        src={line.data[0]}
-                        alt="Output from displayImage()"
-                        class="max-w-full my-0.5"
-                      />
-                    {:else}
-                      {line.data.join(" ")}
-                    {/if}
-                  </p>
-                  <p
-                    class="hidden md:block ml-auto shrink-0 font-mono text-gray-400 select-none"
-                  >
-                    {new Date(line.time).toLocaleTimeString()}
-                  </p>
-                </div>
+                <ConsoleLine {line} showTime />
               {/each}
             </div>
           </div>

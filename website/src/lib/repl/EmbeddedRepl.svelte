@@ -1,9 +1,18 @@
 <script lang="ts">
+  import type { Device } from "@jax-js/jax";
   import { SplitPane } from "@rich_harris/svelte-split-pane";
-  import { ExternalLinkIcon, PlayIcon, TerminalIcon } from "lucide-svelte";
+  import {
+    CheckIcon,
+    ExternalLinkIcon,
+    LoaderIcon,
+    PlayIcon,
+    TerminalIcon,
+  } from "lucide-svelte";
 
+  import ConsoleLine from "./ConsoleLine.svelte";
   import ReplEditor from "./ReplEditor.svelte";
   import { encodeContent } from "./encode";
+  import { ReplRunner } from "./runner.svelte";
 
   let {
     initialText,
@@ -12,8 +21,14 @@
   } = $props();
 
   let editor: ReplEditor;
+  let runner = new ReplRunner();
   let currentText = $state(initialText);
   let replLink = $derived(`/repl?content=` + encodeContent(currentText));
+  let device = $state<Device>("webgpu");
+
+  async function handleRun() {
+    await runner.runProgram(editor.getText(), device);
+  }
 </script>
 
 <div class="h-full flex flex-col border border-gray-200 rounded-lg">
@@ -22,6 +37,8 @@
   >
     <button
       class="bg-green-100 hover:bg-green-200 px-2 py-0.5 rounded flex text-sm items-center gap-1.5"
+      onclick={handleRun}
+      disabled={runner.running}
     >
       <PlayIcon size={16} />
       Run
@@ -35,16 +52,18 @@
     </a>
 
     <div class="ml-auto"></div>
-    <select class="hover:bg-gray-100 rounded text-sm pt-[3px] py-0.5">
-      <option>WebGPU</option>
-      <option>Wasm</option>
-      <option>CPU (slow)</option>
+    <select
+      bind:value={device}
+      class="hover:bg-gray-100 rounded text-sm pt-[3px] py-0.5"
+    >
+      <option value="webgpu">WebGPU</option>
+      <option value="wasm">Wasm</option>
     </select>
   </div>
   <div class="flex-1 min-h-0">
     <SplitPane
       type="vertical"
-      pos="-40px"
+      pos="-100px"
       min="40px"
       max="-40px"
       --color="var(--color-gray-200)"
@@ -66,14 +85,43 @@
           onchange={() => {
             currentText = editor.getText();
           }}
+          onrun={handleRun}
         />
       {/snippet}
       {#snippet b()}
-        <div class="flex items-center justify-center select-none">
-          <TerminalIcon size={20} class="text-gray-300 mr-2" />
-          <p class="text-sm text-gray-500">Run code to see output here.</p>
-        </div>
+        {#if !runner.running && !runner.finished}
+          <div class="flex px-3 py-2 select-none">
+            <TerminalIcon size={20} class="text-gray-400 mr-2" />
+            <p class="text-sm text-gray-500">Run code to see output here.</p>
+          </div>
+        {:else if runner.consoleLines.length === 0 && runner.finished}
+          <div class="flex px-3 py-2 select-none">
+            <CheckIcon size={20} class="text-gray-400 mr-2" />
+            <p class="text-sm text-gray-500">No output.</p>
+          </div>
+        {:else}
+          <div class="flex flex-col px-3 text-[13px]">
+            <p class="shrink-0 text-gray-500 pt-2 pb-1">
+              Console
+              {#if runner.running}
+                <LoaderIcon
+                  size={14}
+                  class="inline-block animate-spin ml-1 mb-0.5"
+                />
+              {/if}
+            </p>
+            <div class="flex-1 py-1 font-mono overflow-y-auto">
+              {#each runner.consoleLines as line}
+                <ConsoleLine {line} />
+              {/each}
+            </div>
+          </div>
+        {/if}
       {/snippet}
     </SplitPane>
   </div>
 </div>
+
+<style lang="postcss">
+  @reference "$app.css";
+</style>
