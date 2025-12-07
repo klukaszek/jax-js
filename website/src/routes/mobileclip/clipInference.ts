@@ -36,12 +36,19 @@ export function fromSafetensors(file: safetensors.File): MobileCLIP {
   for (const [key, value] of Object.entries(mappedWeights)) {
     console.log(key);
     console.log(value);
-    hydrated[key] = np
-      .array(value.data as any, {
-        dtype: value.dtype === "F16" ? np.float16 : np.int32,
-        shape: value.shape,
-      })
-      .astype(np.float32);
+    if (value.dtype === "F16") {
+      hydrated[key] = np
+        .array(value.data as Float16Array<ArrayBuffer>, {
+          dtype: np.float16,
+          shape: value.shape,
+        })
+        .astype(np.float32);
+    } else if (value.dtype === "I64") {
+      // Ignored, these are metadata for BatchNorm.
+      continue;
+    } else {
+      throw new Error(`Unexpected dtype ${value.dtype} for weight ${key}`);
+    }
   }
   return safetensors.toNested(hydrated);
 }
@@ -178,6 +185,6 @@ export function runLayerNorm(
         .mul(1 / dimSize)
         .sum(-1, { keepdims: true }),
     )
-    .add(np.array(1e-5, { dtype: x.dtype, device: x.device }));
+    .add(1e-5);
   return x.div(denom).mul(weight).add(bias);
 }

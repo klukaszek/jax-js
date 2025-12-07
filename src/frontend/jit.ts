@@ -4,10 +4,18 @@ import { AluExp, AluOp, AluVar, DType, Kernel, Reduction } from "../alu";
 import { Backend, Slot } from "../backend";
 import { PPrint } from "../pprint";
 import { ShapeTracker, unravelAlu } from "../shape";
-import { DEBUG, deepEqual, FpHash, prod, range, rep } from "../utils";
-import { aluCompare, Array, generalBroadcast, PendingExecute } from "./array";
+import {
+  DEBUG,
+  deepEqual,
+  FpHash,
+  generalBroadcast,
+  prod,
+  range,
+  rep,
+} from "../utils";
+import { aluCompare, Array, PendingExecute } from "./array";
 import { pool, poolTranspose, prepareConv } from "./convolution";
-import { Primitive, PrimitiveParams, ShapedArray } from "./core";
+import { Primitive, PrimitiveParams, promoteAvals, ShapedArray } from "./core";
 import { Jaxpr, Lit, Var } from "./jaxpr";
 
 export type JitId = number;
@@ -548,7 +556,7 @@ const jitRules: { [P in Primitive]: JitRule<P> } = {
     // Dot is just Mul->Reduce in sequence.
     const k1 = jitRules[Primitive.Mul](nargs, [a, b], [as, bs], {});
     const c = k1.exp;
-    const cs = new ShapedArray(generalBroadcast(as.shape, bs.shape), c.dtype);
+    const cs = promoteAvals(as, bs);
     return jitRules[Primitive.Reduce](nargs, [c], [cs], {
       op: AluOp.Add,
       axis: [cs.ndim - 1],
@@ -562,8 +570,8 @@ const jitRules: { [P in Primitive]: JitRule<P> } = {
     );
     a = reshapeViews(a, (st) => st.compose(stX));
     b = reshapeViews(b, (st) => st.compose(stY));
-    as = new ShapedArray(stX.shape, as.dtype);
-    bs = new ShapedArray(stY.shape, bs.dtype);
+    as = new ShapedArray(stX.shape, as.dtype, as.weakType);
+    bs = new ShapedArray(stY.shape, bs.dtype, bs.weakType);
     return jitRules[Primitive.Dot](nargs, [a, b], [as, bs], {});
   },
   [Primitive.Compare]: broadcastedJit(([a, b], { op }) => aluCompare(a, b, op)),

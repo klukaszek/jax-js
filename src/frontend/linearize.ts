@@ -9,13 +9,14 @@ import {
 import {
   DEBUG,
   deepEqual,
+  generalBroadcast,
   invertPermutation,
   partitionList,
   range,
   toposort,
   unzip2,
 } from "../utils";
-import { eye, generalBroadcast, pureArray, scalar, zeros } from "./array";
+import { array, eye, pureArray, zeros } from "./array";
 import {
   AbstractValue,
   add,
@@ -579,7 +580,7 @@ function evalJaxprTransposed(
     // values. Tricky!
     const primalsIn = eqn.inputs.map((v) =>
       v instanceof Lit
-        ? scalar(v.value, { dtype: v.dtype }) // TODO: Use correct backend
+        ? array(v.value, { dtype: v.dtype }) // TODO: Use correct backend
         : knownPrimals.has(v)
           ? knownPrimals.get(v)!.ref
           : new UndefPrimal(v.aval),
@@ -983,7 +984,7 @@ export function valueAndGrad(f: (...primals: any) => Tracer) {
       throw new TypeError("grad only supports floating-point dtypes");
     }
     // TODO: Use correct device
-    const [ct, ...rest] = fVjp(scalar(1, { dtype: y.dtype }));
+    const [ct, ...rest] = fVjp(array(1, { dtype: y.dtype }));
     for (const r of rest) treeDispose(r);
     fVjp.dispose();
     return [y, ct] as [any, any];
