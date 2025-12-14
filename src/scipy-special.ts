@@ -1,6 +1,5 @@
 // Mirrors the `jax.scipy.special` module in JAX.
 
-import { fudgeArray } from "./frontend/array";
 import * as core from "./frontend/core";
 import { jit } from "./frontend/jaxpr";
 import { Array, ArrayLike, log, subtract } from "./numpy";
@@ -26,8 +25,7 @@ export { logSoftmax } from "./nn";
  * @function
  * The logit function, `logit(p) = log(p / (1-p))`.
  */
-export const logit = jit(function logit(x: ArrayLike): Array {
-  x = fudgeArray(x);
+export const logit = jit(function logit(x: Array): Array {
   return log(x.ref.div(subtract(1, x)));
 });
 

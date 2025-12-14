@@ -55,14 +55,13 @@ const _erf_a3: f32 = 1.421413741;
 const _erf_a4: f32 = -1.453152027;
 const _erf_a5: f32 = 1.061405429;
 fn erf(x: f32) -> f32 {
-  let sgn = sign(x);
   let t = 1.0 / (1.0 + _erf_p * abs(x));
-  let P_t = ((((_erf_a5 * t + _erf_a4) * t + _erf_a3) * t + _erf_a2) * t + _erf_a1) * t;
-  return sgn * (1.0 - P_t * exp(-x * x));
+  let P_t = fma(fma(fma(fma(_erf_a5, t, _erf_a4), t, _erf_a3), t, _erf_a2), t, _erf_a1) * t;
+  return sign(x) * (1.0 - P_t * exp(-x * x));
 }
 fn erfc(x: f32) -> f32 {
   let t = 1.0 / (1.0 + _erf_p * abs(x));
-  let P_t = ((((_erf_a5 * t + _erf_a4) * t + _erf_a3) * t + _erf_a2) * t + _erf_a1) * t;
+  let P_t = fma(fma(fma(fma(_erf_a5, t, _erf_a4), t, _erf_a3), t, _erf_a2), t, _erf_a1) * t;
   let E = P_t * exp(-x * x);
   return select(2.0 - E, E, x >= 0.0);
 }`;
