@@ -3,7 +3,8 @@
 // Unlike in JAX, this does not actually underpin `jax.numpy` as a more "core"
 // set of operations, as they both build open the same foundations.
 
-import { Array } from "./frontend/array";
+import { Array, ArrayLike } from "./frontend/array";
+import * as core from "./frontend/core";
 import { bind1, conv as convPrimitive, Primitive } from "./frontend/core";
 import { vmap } from "./frontend/vmap";
 import { rep, zipn } from "./utils";
@@ -138,4 +139,29 @@ export function reduceWindow(
       strides: windowStrides,
     }) as Array,
   );
+}
+
+/** The error function: `erf(x) = 2/sqrt(pi) * int[0..x] exp(-t^2) dt`. */
+export function erf(x: ArrayLike): Array {
+  return core.erf(x) as Array;
+}
+
+/**
+ * The complementary error function: `erfc(x) = 1 - erf(x)`.
+ *
+ * This function is more accurate than `1 - erf(x)` for large values of `x`,
+ * where `erf(x)` is very close to 1.
+ */
+export function erfc(x: ArrayLike): Array {
+  return core.erfc(x) as Array;
+}
+
+/**
+ * Stops gradient computation.
+ *
+ * Behaves as the identity function but prevents the flow of gradients during
+ * forward or reverse-mode automatic differentiation.
+ */
+export function stopGradient(x: ArrayLike): Array {
+  return core.stopGradient(x) as Array;
 }
