@@ -345,59 +345,20 @@ pnpm -C website dev
 
 ## Future work / help wanted
 
-Contributions are welcomed in the following areas:
+Contributions are welcomed! Especially in:
 
 - Adding support for more JAX functions and operations, see [compatibility table](./FEATURES.md).
 - Improving performance of the WebGPU and Wasm runtimes, generating better kernels, and using SIMD
   and multithreading. (Even single-threaded Wasm could be ~20x faster.)
-- Helping the JIT compiler to fuse operations in more cases.
+- Helping the JIT compiler to fuse operations in more cases, like `tanh` branches and adding
+  epilogue to reductions.
 - Adding WebGL runtime for older browsers that don't support WebGPU.
 - Making a fast transformer inference engine, comparing against onnxruntime-web.
-- Ergonomics and API improvements.
 
-## Next on Eric's mind
+## Release checklist
 
-- Finish CLIP inference demo and associated features (depthwise convolution, vmap of gather, etc.)
-- Performance
-  - Improve perf of MobileCLIP neural network
-    - Add fused epilogue to JIT
-    - Fix fusion of activation functions with branches like tanh
-    - Reduce kernel overhead of constants / inline expressions
-  - How many threads to create per workgroup, depends on hardware
-
-## Milestones
-
-- [x] It works!
-- [x] Demos: Browser REPL / editor
-- [x] First custom kernel
-- [x] Custom WebGPU backend, removing tfjs dependency
-  - [x] Low-level operations
-  - [x] Create `class Array {}` wrappers
-  - [x] Reduction operations
-- [ ] Kernel tuning (see `tuner.ts`)
-  - [x] "Upcast" optimizations (compute a tile per thread, e.g., matmul)
-  - [x] "Unroll" optimizations (multiple loop iters per thread, e.g., matmul)
-  - [ ] "Group" optimizations (multiple threads per value, e.g., matvec)
-  - [ ] Blocks respect local dimensions
-- [x] Other dtypes like int32 and bool
-- [x] `jit()` support via Jaxprs and kernel fusion
-- [x] We figure out the `dispose()` / refcount / linear types stuff
-  - [x] `dispose()` for saved "const" tracers in Jaxprs
-  - [x] Garbage collection for JIT programs
-  - [x] Debug grad-grad-jit test producing a UseAfterFreeError
-- [ ] Demos: Navier-Stokes, neural networks, statistics
-- [x] Features for neural networks
-  - [x] Convolution
-  - [x] Random and initializers
-  - [x] Optimizers (optax package?)
-- [x] Wasm backend (needs malloc)
-  - [x] Better memory allocation that frees buffers
-  - [ ] SIMD support for Wasm backend
-  - [ ] Async / multithreading Wasm support
-- [ ] Full support of weak types and committed devices
-  - [x] High-level ops have automatic type promotion
-  - [x] Weak types - [ref](https://docs.jax.dev/en/latest/type_promotion.html#weak-types)
-  - [ ] Committed devices -
-        [ref](https://docs.jax.dev/en/latest/sharded-computation.html#sharded-data-placement)
-  - [ ] Device switching with `device_put()` between webgpu/cpu/wasm
-- [x] numpy/jax API compatibility table
+- [ ] Committed devices -
+      [ref](https://docs.jax.dev/en/latest/sharded-computation.html#sharded-data-placement)
+- [ ] Device switching with `device_put()` between webgpu/cpu/wasm
+- [ ] Finish CLIP inference demo and associated features (depthwise convolution, vmap of gather,
+      etc.)
