@@ -2,7 +2,7 @@
   import { browser } from "$app/environment";
   import { resolve } from "$app/paths";
 
-  import { ArrowUpRight } from "@lucide/svelte";
+  import { ArrowUpRight, ExternalLinkIcon } from "@lucide/svelte";
 
   import logo from "$lib/assets/logo.svg";
   import MatmulPerfDemo from "$lib/homepage/MatmulPerfDemo.svelte";
@@ -35,26 +35,26 @@
     </a>
   </div>
   <nav class="flex items-center gap-6">
-    <a
-      href="https://github.com/ekzhang/jax-js"
-      target="_blank"
-      class="hover:text-primary">GitHub</a
-    >
     <a href={resolve("/repl")} class="hidden sm:block hover:text-primary"
       >REPL</a
     >
-    <a
-      rel="external"
-      target="_blank"
-      href="https://jax-js.com/docs/"
-      class="hover:text-primary transition-colors">Reference</a
+    <a rel="external" href="https://jax-js.com/docs/" class="hover:text-primary"
+      >Docs</a
     >
+    <a
+      href="https://github.com/ekzhang/jax-js"
+      target="_blank"
+      class="bg-primary/15 hover:bg-primary/25 px-4 py-1 rounded-full"
+    >
+      GitHub
+      <ExternalLinkIcon size={16} class="inline-block mb-1 ml-0.5 opacity-60" />
+    </a>
   </nav>
 </header>
 
 <main class="font-tiktok">
   <!-- Hero section -->
-  <section class="px-6 py-12 md:py-16 max-w-screen-xl mx-auto">
+  <section class="px-6 py-14 md:py-20 max-w-screen-xl mx-auto">
     <div class="grid md:grid-cols-[5fr_3fr] gap-x-12 gap-y-16">
       <div class="lg:py-8">
         <h1 class="text-3xl sm:text-4xl mb-6 leading-tight max-w-2xl">
@@ -63,8 +63,8 @@
         </h1>
         <p class="text-lg text-gray-700 leading-snug mb-8 max-w-2xl">
           High-performance WebGPU and WebAssembly kernels in JavaScript. Run
-          neural networks, image algorithms, simulations, and numerical code on
-          arrays, all JIT compiled in your browser.
+          neural networks, image algorithms, simulations, and numerical code,
+          all JIT compiled in your browser.
         </p>
 
         <!-- Add to project box -->
@@ -100,7 +100,7 @@
   </section>
 
   <!-- Explainer section -->
-  <section class="mx-auto max-w-screen-xl my-8 sm:px-6">
+  <section class="mx-auto max-w-screen-xl my-8 sm:px-6 hidden">
     <div class="sm:rounded-xl bg-primary/5 px-8 py-8">
       <div class="mx-auto max-w-2xl">
         <h2 class="text-xl font-medium text-center mb-6">
@@ -182,7 +182,7 @@ console.log(vmap(grad(np.square))(x));
           />
         </h3>
         <p class="text-sm text-gray-600">
-          Get started with jax-js and check out the code.
+          Get started with jax-js and check out the tutorial.
         </p>
       </a>
 
@@ -211,9 +211,7 @@ console.log(vmap(grad(np.square))(x));
             class="inline-block text-gray-400 mb-px"
           />
         </h3>
-        <p class="text-sm text-gray-600">
-          Try out the library in your browser.
-        </p>
+        <p class="text-sm text-gray-600">Try writing code in your browser.</p>
       </a>
     </div>
   </section>
