@@ -248,14 +248,14 @@
               Console
               {#if replRunner.running}
                 <LoaderIcon
-                  size={16}
+                  size={14}
                   class="inline-block animate-spin ml-1 mb-[3px]"
                 />
               {:else if consoleLines.length === 0}
                 <span>(empty)</span>
               {:else if runDurationMs !== null}
                 <span class="ml-1 text-gray-400"
-                  >({Math.round(runDurationMs)} ms)</span
+                  >({Math.round(runDurationMs).toLocaleString()} ms)</span
                 >
               {/if}
             </p>

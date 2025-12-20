@@ -50,17 +50,20 @@ export class ReplRunner {
     this.running = true;
     this.finished = false;
     this.runDurationMs = null;
-    const startTime = performance.now();
+    const startedRunAt = performance.now();
     try {
-      await _runProgram(source, device, this);
-    } finally {
-      const endTime = performance.now();
-      const duration = endTime - startTime;
-      this.runDurationMs = duration;
-      if (duration < 100) {
+      const result = await _runProgram(source, device, this);
+      const endedRunAt = performance.now();
+      if (endedRunAt - startedRunAt < 100) {
         // Take at least 100ms, otherwise it's unclear it actually ran.
-        await new Promise((resolve) => setTimeout(resolve, 100 - duration));
+        await new Promise((resolve) =>
+          setTimeout(resolve, 100 - (endedRunAt - startedRunAt)),
+        );
       }
+      if (result.success) {
+        this.runDurationMs = result.duration;
+      }
+    } finally {
       this.running = false;
       this.finished = true;
     }
@@ -119,7 +122,16 @@ export class ReplRunner {
   }
 }
 
-async function _runProgram(source: string, device: Device, runner: ReplRunner) {
+interface RunResult {
+  success: boolean;
+  duration: number;
+}
+
+async function _runProgram(
+  source: string,
+  device: Device,
+  runner: ReplRunner,
+): Promise<RunResult> {
   const [jax, optax, loaders] = await Promise.all([
     import("@jax-js/jax"),
     import("@jax-js/optax"),
@@ -278,6 +290,7 @@ async function _runProgram(source: string, device: Device, runner: ReplRunner) {
     const AsyncFunction: typeof Function = async function () {}
       .constructor as any;
 
+    const startTime = performance.now();
     await new AsyncFunction("_MODULES", "_BUILTINS", bundledCode)(
       // _MODULES
       {
@@ -291,8 +304,13 @@ async function _runProgram(source: string, device: Device, runner: ReplRunner) {
         displayImage: displayImage,
       },
     );
+    return {
+      success: true,
+      duration: performance.now() - startTime,
+    };
   } catch (e: any) {
     mockConsole.error(e);
+    return { success: false, duration: 0 };
   }
 }
 

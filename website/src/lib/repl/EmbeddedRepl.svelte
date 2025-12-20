@@ -138,7 +138,7 @@
                 />
               {:else if runDurationMs !== null}
                 <span class="ml-1 text-gray-400"
-                  >({Math.round(runDurationMs)} ms)</span
+                  >({Math.round(runDurationMs).toLocaleString()} ms)</span
                 >
               {/if}
             </p>
