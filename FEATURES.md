@@ -213,8 +213,8 @@ Most operations behave the same way as they do in JAX.
 | `dstack`              | 🟢      |                                         |
 | `dtype`               | ⚪️      | can access `Array.dtype`                |
 | `ediff1d`             | 🟠      |                                         |
-| `einsum`              | 🔴      |                                         |
-| `einsum_path`         | 🔴      |                                         |
+| `einsum`              | 🟢      |                                         |
+| `einsum_path`         | ⚪️      | path is currently private               |
 | `empty`               | ⚪️      | use `zeros`                             |
 | `empty_like`          | ⚪️      | use `zeros_like`                        |
 | `equal`               | 🟢      |                                         |
@@ -536,7 +536,7 @@ Similarly, the `linalg` module has some very important operations for linear alg
 ## [`jax.lax` module](https://docs.jax.dev/en/latest/jax.lax.html)
 
 Only a few functions in `jax.lax` have been implemented, notably `conv_general_dilated` for
-convolutions.
+convolutions and `dot` for general tensor contractions.
 
 In the future, the library may need a rework to add support for `lax` operations, which are
 lower-level (semantics-wise, they don't do automatic type promotion). The reason why jax-js did not
