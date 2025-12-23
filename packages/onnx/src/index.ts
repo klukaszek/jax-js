@@ -10,6 +10,7 @@ import {
   ModelProtoSchema,
   type NodeProto,
   type TensorProto,
+  type ValueInfoProto,
 } from "onnx-buf";
 
 import * as onnxOps from "./ops";
@@ -179,6 +180,48 @@ export interface ONNXRunOptions {
   debugStats?: string[];
 }
 
+/**
+ * Check if a tensor shape is compatible its expected shape from `valueInfo`.
+ *
+ * Throws an error if there is a mismatch. Dynamic dimensions (dim_param) are
+ * always considered compatible.
+ */
+function validateTensorShape(
+  name: string,
+  shape: number[],
+  valueInfo: Map<string, ValueInfoProto>,
+): void {
+  const type = valueInfo.get(name)?.type;
+  if (!type || type.value.case !== "tensorType") {
+    return; // No tensor type info available, can't check
+  }
+
+  const tensorType = type.value.value;
+  const expectedShape = tensorType.shape;
+  if (!expectedShape) {
+    return; // No shape info available
+  }
+
+  const dims = expectedShape.dim;
+  if (dims.length !== shape.length) {
+    throw new Error(
+      `onnx: rank mismatch in ${name}: expected ${dims.length} dims, got ${JSON.stringify(shape)}`,
+    );
+  }
+
+  for (let i = 0; i < dims.length; i++) {
+    const dim = dims[i];
+    if (dim.value.case === "dimValue") {
+      const expectedDim = Number(dim.value.value);
+      if (shape[i] !== expectedDim) {
+        throw new Error(
+          `onnx: shape mismatch in ${name} at dim ${i}: expected ${expectedDim}, got ${shape[i]}`,
+        );
+      }
+    }
+  }
+}
+
 function logDebugStats(name: string, arr: np.Array): void {
   arr = arr.astype(np.float32);
 
@@ -219,6 +262,11 @@ function modelAsJaxFunction(
   const outputNames = graph.output.map((o) => o.name);
   const numInitializers = initializers.size;
 
+  // For validation of intermediate tensors.
+  const valueInfo = new Map<string, ValueInfoProto>(
+    graph.valueInfo.map((v) => [v.name, v]),
+  );
+
   return function (
     inputs: Record<string, np.Array>,
     options?: ONNXRunOptions,
@@ -241,7 +289,10 @@ function modelAsJaxFunction(
     const vars = new Map<string, np.Array>();
     try {
       for (const [name, arr] of initializers) vars.set(name, arr.ref);
-      for (const name of inputNames) vars.set(name, inputs[name]);
+      for (const name of inputNames) {
+        validateTensorShape(name, inputs[name].shape, valueInfo);
+        vars.set(name, inputs[name]);
+      }
 
       for (const node of graph.node) {
         const results = executeNode(node, vars);
@@ -265,6 +316,7 @@ function modelAsJaxFunction(
           if (debugStats.has(name)) {
             logDebugStats(name, results[i].ref);
           }
+          validateTensorShape(name, results[i].shape, valueInfo);
           vars.set(name, results[i]);
         }
       }
