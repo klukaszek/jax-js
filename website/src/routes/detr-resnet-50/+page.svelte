@@ -6,6 +6,7 @@
     defaultDevice,
     init,
     jit,
+    lax,
     nn,
     numpy as np,
   } from "@jax-js/jax";
@@ -16,10 +17,14 @@
   import { countMethodCalls } from "$lib/profiling";
   import { COCO_CLASSES, stringToColor } from "./coco";
 
+  const width = 800;
+  const height = 800;
+  const downsampleFactor = 2;
+
   let canvasEl: HTMLCanvasElement;
   let videoEl: HTMLVideoElement;
   const offscreenCanvas: OffscreenCanvas = browser
-    ? new OffscreenCanvas(800, 800)
+    ? new OffscreenCanvas(width, height)
     : (null as any);
 
   let downloadManager: DownloadManager;
@@ -70,13 +75,16 @@
       const text = `${label}: ${(prob * 100).toFixed(1)}%`;
       ctx.font = "bold 14px sans-serif";
       const textMetrics = ctx.measureText(text);
-      const textH = 18;
+      const textH = 14;
       ctx.fillStyle = color;
-      ctx.fillRect(x1, y1 - textH, textMetrics.width + 8, textH);
+      ctx.strokeStyle = color;
+      ctx.lineWidth = 3;
+      ctx.strokeRect(x1, y1 - textH, textMetrics.width + 4, textH);
+      ctx.fillRect(x1, y1 - textH, textMetrics.width + 4, textH);
 
       // Draw label text
       ctx.fillStyle = "#ffffff";
-      ctx.fillText(text, x1 + 4, y1 - 4);
+      ctx.fillText(text, x1 + 2, y1 - 2);
     }
   }
 
@@ -93,7 +101,7 @@
   async function startWebcam() {
     if (webcamStream) return;
     webcamStream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: "environment", width: 800, height: 800 },
+      video: { facingMode: "environment", width, height },
     });
     videoEl.srcObject = webcamStream;
     await videoEl.play();
@@ -126,15 +134,15 @@
     pixelMask: np.Array;
     imageData: ImageData;
   }> {
-    const size = 800;
     const ctx = offscreenCanvas.getContext("2d", { willReadFrequently: true })!;
 
     if (source === "webcam") {
       // Draw current video frame, center cropped to square
       const { videoWidth: origW, videoHeight: origH } = videoEl;
-      const cropSize = Math.min(origW, origH);
-      const sx = (origW - cropSize) / 2;
-      const sy = (origH - cropSize) / 2;
+      const cropWidth = Math.min(origW, (origH * width) / height);
+      const cropHeight = Math.min(origH, (origW * height) / width);
+      const sx = (origW - cropWidth) / 2;
+      const sy = (origH - cropHeight) / 2;
       if (isFrontCamera) {
         // Mirror front camera horizontally
         ctx.save();
@@ -143,16 +151,26 @@
           videoEl,
           sx,
           sy,
-          cropSize,
-          cropSize,
-          -size,
+          cropWidth,
+          cropHeight,
+          -cropWidth,
           0,
-          size,
-          size,
+          width,
+          height,
         );
         ctx.restore();
       } else {
-        ctx.drawImage(videoEl, sx, sy, cropSize, cropSize, 0, 0, size, size);
+        ctx.drawImage(
+          videoEl,
+          sx,
+          sy,
+          cropWidth,
+          cropHeight,
+          0,
+          0,
+          width,
+          height,
+        );
       }
     } else {
       // Load example image
@@ -165,32 +183,43 @@
         img.src = url;
       });
 
-      // Center crop to square, then resize to 800x800
+      // Center crop to square, then resize to WxH
       const { width: origW, height: origH } = img;
-      const cropSize = Math.min(origW, origH);
-      const sx = (origW - cropSize) / 2;
-      const sy = (origH - cropSize) / 2;
-      ctx.drawImage(img, sx, sy, cropSize, cropSize, 0, 0, size, size);
+      const cropWidth = Math.min(origW, (origH * width) / height);
+      const cropHeight = Math.min(origH, (origW * height) / width);
+      const sx = (origW - cropWidth) / 2;
+      const sy = (origH - cropHeight) / 2;
+      ctx.drawImage(img, sx, sy, cropWidth, cropHeight, 0, 0, width, height);
     }
 
-    const imageData = ctx.getImageData(0, 0, size, size);
+    const imageData = ctx.getImageData(0, 0, width, height);
     const pixels = imageData.data; // RGBA
 
     // ImageNet normalization constants
     const mean = [0.485, 0.456, 0.406];
     const std = [0.229, 0.224, 0.225];
 
-    // Convert to [1, 3, 800, 800] float32, with ImageNet normalization
-    const pixelValues = np
+    // Convert to [1, 3, W, H] float32, with ImageNet normalization
+    let pixelValues = np
       .array(new Float32Array(new Uint8Array(pixels.buffer)), {
-        shape: [size, size, 4],
+        shape: [width, height, 4],
       })
       .slice([], [], [0, 3]) // RGB channels
       .mul(1 / 255)
       .sub(np.array(mean))
       .div(np.array(std))
-      .transpose([2, 0, 1]) // to [3, 800, 800]
-      .reshape([1, 3, size, size]);
+      .transpose([2, 0, 1]) // to [3, W, H]
+      .reshape([1, 3, width, height]);
+
+    if (downsampleFactor > 1) {
+      // Downsample by factor of 2 using average pooling
+      pixelValues = lax.reduceWindow(
+        pixelValues,
+        np.mean,
+        [downsampleFactor, downsampleFactor],
+        [downsampleFactor, downsampleFactor],
+      );
+    }
 
     // Pixel mask: Transformers.js hardcodes this to [batch, 64, 64]
     const pixelMask = np.ones([1, 64, 64], { dtype: np.int32 });
@@ -337,11 +366,12 @@
     const bufferCreateCount = countMethodCalls(GPUDevice, "createBuffer");
 
     const seconds = await runBenchmark("detr-resnet-50-ort", async () => {
-      const tensorPixelValues = new ort.Tensor(
-        "float32",
-        pixelValues,
-        [1, 3, 800, 800],
-      );
+      const tensorPixelValues = new ort.Tensor("float32", pixelValues, [
+        1,
+        3,
+        width,
+        height,
+      ]);
       const tensorPixelMask = new ort.Tensor("int64", pixelMask, [1, 64, 64]);
 
       const outputs = await ortSession!.run({
@@ -412,18 +442,17 @@
       {/if}
     </div>
   </div>
-  <div class="mt-4">
+  <div class="mt-4 -mx-4 sm:mx-0">
     <video
       bind:this={videoEl}
       class="hidden"
       class:-scale-x-100={isFrontCamera}
-      width="800"
-      height="800"
+      {width}
+      {height}
       playsinline
       muted
     ></video>
-    <canvas bind:this={canvasEl} class="max-w-full" width="800" height="800"
-    ></canvas>
+    <canvas bind:this={canvasEl} class="max-w-full" {width} {height}></canvas>
   </div>
 </main>
 
