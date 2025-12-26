@@ -1,4 +1,4 @@
-// Handle JitCall operations by translating Jaxprs into dispatched Kernels.
+// Handle Jit operations by translating Jaxprs into dispatched Kernels.
 
 import { AluExp, AluOp, AluVar, DType, Kernel, Reduction } from "../alu";
 import { Backend, Slot } from "../backend";
@@ -691,9 +691,9 @@ const jitRules: { [P in Primitive]: JitRule<P> } = {
       throw new Error("internal: expected full validity mask in Gather");
     return { exp: x.substitute({ gidx: index }) };
   },
-  [Primitive.JitCall]() {
+  [Primitive.Jit]() {
     throw new Error(
-      "internal: JitCall should have been flattened before JIT compilation",
+      "internal: Jit should have been flattened before JIT compilation",
     );
   },
 };

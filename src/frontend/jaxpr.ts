@@ -360,18 +360,18 @@ export class Jaxpr implements FpHashable {
     return new Jaxpr(this.inBinders, liveEqns.reverse(), outs);
   }
 
-  /** Flattens nested JitCall in a Jaxpr. Useful for handling jit-of-jit. */
+  /** Flattens nested Jit in a Jaxpr. Useful for handling jit-of-jit. */
   flatten(): Jaxpr {
-    if (!this.eqns.some((eqn) => eqn.primitive === Primitive.JitCall)) {
-      // Fast path: no JitCall to flatten.
+    if (!this.eqns.some((eqn) => eqn.primitive === Primitive.Jit)) {
+      // Fast path: no Jit to flatten.
       return this;
     }
     // Otherwise, we need to flatten this Jaxpr.
     const newEqns: JaxprEqn[] = [];
-    const varMap = new Map<Var, Atom>(); // outBinders from JitCall are replaced with new values
+    const varMap = new Map<Var, Atom>(); // outBinders from Jit are replaced with new values
     const varMapF = (x: Atom) => (x instanceof Var ? (varMap.get(x) ?? x) : x);
     for (const eqn of this.eqns) {
-      if (eqn.primitive === Primitive.JitCall) {
+      if (eqn.primitive === Primitive.Jit) {
         // First, flatten the Jaxpr recursively.
         const jaxpr = (eqn.params.jaxpr as Jaxpr).flatten();
         // Make a mapping of this Jaxpr's variables to translated values.
@@ -866,17 +866,17 @@ export const abstractEvalRules: { [P in Primitive]: AbstractEvalRule<P> } = {
     newShape.splice(outDim, 0, ...gatherShape);
     return [new ShapedArray(newShape, x.dtype, x.weakType)];
   },
-  [Primitive.JitCall](args, { jaxpr }) {
+  [Primitive.Jit](args, { jaxpr }) {
     const { inTypes, outTypes } = typecheckJaxpr(jaxpr);
     if (args.length !== inTypes.length) {
       throw new TypeError(
-        `jit_call expected ${inTypes.length} arguments, got ${args.length}`,
+        `jit expected ${inTypes.length} arguments, got ${args.length}`,
       );
     }
     for (let i = 0; i < inTypes.length; i++) {
       if (!args[i].equals(inTypes[i])) {
         throw new TypeError(
-          `jit_call argument ${i} has type ${args[i]}, expected ${inTypes[i]}`,
+          `jit argument ${i} has type ${args[i]}, expected ${inTypes[i]}`,
         );
       }
     }
@@ -970,7 +970,7 @@ export function jit<F extends (...args: any[]) => any>(
     } = runWithCache(cache, jaxprArgs, () => makeJaxpr(f, opts)(...jaxprArgs));
 
     const outs = bind(
-      Primitive.JitCall,
+      Primitive.Jit,
       [...consts.map((c) => c.ref), ...argsFlat],
       {
         name: f.name || "closure",

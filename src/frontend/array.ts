@@ -985,14 +985,14 @@ export class Array extends Tracer {
       [Primitive.Gather]([x, ...indices], { axis, outDim }) {
         return [x.#gather(indices, axis, outDim)];
       },
-      [Primitive.JitCall](args, { jaxpr, numConsts }) {
+      [Primitive.Jit](args, { jaxpr, numConsts }) {
         if (jaxpr.inBinders.length !== args.length) {
           throw new Error(
-            `jit_call expects ${jaxpr.inBinders.length} args, got ${args.length}`,
+            `jit expects ${jaxpr.inBinders.length} args, got ${args.length}`,
           );
         }
 
-        const { backend, committed } = Array.#computeBackend("jit_call", args);
+        const { backend, committed } = Array.#computeBackend("jit", args);
         args = args.map((ar) => ar._putSync(backend));
 
         const consts = args.slice(0, numConsts);

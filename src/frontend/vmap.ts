@@ -368,10 +368,10 @@ const vmapRules: Partial<{ [P in Primitive]: VmapRule<P> }> = {
       return [[gather(x, indices, newAxis, outDim)], [outDim]];
     }
   },
-  [Primitive.JitCall](axisSize, args, dims, { name, jaxpr }) {
+  [Primitive.Jit](axisSize, args, dims, { name, jaxpr }) {
     const { newJaxpr, newConsts } = vmapJaxpr(jaxpr, axisSize, dims);
     const outs = bind(
-      Primitive.JitCall,
+      Primitive.Jit,
       [...newConsts.map((c) => c.ref), ...args],
       {
         name: `${name}_vmap`,

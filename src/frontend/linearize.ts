@@ -294,12 +294,12 @@ class PartialEvalTrace extends Trace {
         params,
       );
     }
-    if (primitive === Primitive.JitCall) {
+    if (primitive === Primitive.Jit) {
       // Special case, needs its own PartialEvalTrace handling because unlike
-      // other primtiives, JitCall can have subexpressions that are known while
+      // other primtiives, Jit can have subexpressions that are known while
       // other outputs are unknown.
       const { name, jaxpr, numConsts } =
-        params as PrimitiveParams<Primitive.JitCall>;
+        params as PrimitiveParams<Primitive.Jit>;
       return this.#partialEvalJaxpr(name, jaxpr, numConsts, tracers);
     }
     const tracersIn = tracers.map((t) => this.instantiateConst(t));
@@ -329,7 +329,7 @@ class PartialEvalTrace extends Trace {
    * Evaluate a Jaxpr on a set of PartialEvalTracers, computing as many known
    * values as possible (with JIT) and forwarding the unknown ones.
    *
-   * Used when encountering a JitCall rule during the trace.
+   * Used when encountering a Jit rule during the trace.
    */
   #partialEvalJaxpr(
     name: string,
@@ -349,7 +349,7 @@ class PartialEvalTrace extends Trace {
     const [knownTracers, unknownTracers] = partitionList(inUnknowns, tracers);
 
     const outs1Res = bind(
-      Primitive.JitCall,
+      Primitive.Jit,
       knownTracers.map((t) => t.ref.fullLower()),
       { name: `${name}_peval`, jaxpr: jaxpr1, numConsts: 0 },
     );
@@ -361,7 +361,7 @@ class PartialEvalTrace extends Trace {
     );
     const recipe: JaxprRecipe = {
       type: "JaxprEqn",
-      prim: Primitive.JitCall,
+      prim: Primitive.Jit,
       tracersIn: resTracers.concat(unknownTracers),
       params: { name: `${name}_resid`, jaxpr: jaxpr2, numConsts: 0 },
       avalsOut: jaxpr2.outs.map((x) => x.aval),
@@ -377,7 +377,7 @@ class PartialEvalTrace extends Trace {
     });
     recipe.tracerRefsOut = outs2.map((t) => new WeakRef(t));
 
-    // Stitch the known and unknown output tracers together, both with JitCall.
+    // Stitch the known and unknown output tracers together, both with Jit.
     let i = 0;
     let j = 0;
     return outUnknowns.map((unk) => (unk ? outs2[j++] : outs1[i++]));
@@ -399,7 +399,7 @@ function partialEvalJaxpr(
   const eqns1: JaxprEqn[] = [];
   const eqns2: JaxprEqn[] = [];
   for (const eqn of jaxpr.eqns) {
-    if (eqn.primitive === Primitive.JitCall) {
+    if (eqn.primitive === Primitive.Jit) {
       throw new TypeError("partialEvalJaxpr requires flattened Jaxpr");
     }
     const hasUnknowns = eqn.inputs.some(
@@ -852,15 +852,15 @@ const transposeRules: Partial<{ [P in Primitive]: TransposeRule<P> }> = {
       "Gather transpose rule is not yet implemented, requires complex Scatter sum operation",
     );
   },
-  [Primitive.JitCall](cts, args, { name, jaxpr }) {
-    // We need this one because the jvp() rule for JitCall generates a JitCall
+  [Primitive.Jit](cts, args, { name, jaxpr }) {
+    // We need this one because the jvp() rule for Jit generates a Jit
     // with the transformed Jaxpr. So grad-of-jit will result in a transposed
-    // JitCall, which we need to handle.
+    // Jit, which we need to handle.
     const undefPrimals = args.map((x) => x instanceof UndefPrimal);
     const { newJaxpr, newConsts } = transposeJaxpr(jaxpr, undefPrimals);
     const residuals = args.filter((x, i) => !undefPrimals[i]) as Tracer[];
     const outs = bind(
-      Primitive.JitCall,
+      Primitive.Jit,
       [...newConsts.map((c) => c.ref), ...residuals, ...cts],
       {
         name: `${name}_t`,
