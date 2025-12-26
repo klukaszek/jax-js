@@ -54,6 +54,8 @@ export {
   zeros,
 };
 
+export * as fft from "./numpy-fft";
+
 export const float32 = DType.Float32;
 export const int32 = DType.Int32;
 export const uint32 = DType.Uint32;

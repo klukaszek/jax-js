@@ -469,29 +469,29 @@ Most operations behave the same way as they do in JAX.
 
 ## [`jax.numpy.fft` module](https://docs.jax.dev/en/latest/jax.numpy.html#module-jax.numpy.fft)
 
-While FFT is not supported yet, we welcome contributions in this area. FFT is a very useful
-operation, and we probably need to do some work to get it to work well on GPU within this library.
+Basic FFT is supported, but there is no `complex64` data type in the library. All FFT routines take
+in pairs of real and imaginary parts.
 
-| API         | Support | Notes                  |
-| ----------- | ------- | ---------------------- |
-| `fft`       | ⚪️      | complex FFT            |
-| `fft2`      | ⚪️      | complex FFT            |
-| `fftfreq`   | ⚪️      | frequences for complex |
-| `fftn`      | ⚪️      | complex FFT            |
-| `fftshift`  | 🟠      |                        |
-| `hfft`      | ⚪️      | complex FFT            |
-| `ifft`      | ⚪️      | complex FFT            |
-| `ifft2`     | ⚪️      | complex FFT            |
-| `ifftn`     | ⚪️      | complex FFT            |
-| `ifftshift` | 🟠      |                        |
-| `ihfft`     | ⚪️      | complex FFT            |
-| `irfft`     | 🔴      |                        |
-| `irfft2`    | 🔴      |                        |
-| `irfftn`    | 🔴      |                        |
-| `rfft`      | 🔴      |                        |
-| `rfft2`     | 🔴      |                        |
-| `rfftfreq`  | 🟠      |                        |
-| `rfftn`     | 🔴      |                        |
+| API         | Support | Notes            |
+| ----------- | ------- | ---------------- |
+| `fft`       | 🟡      | only powers of 2 |
+| `fft2`      | 🟠      |                  |
+| `fftfreq`   | 🟠      |                  |
+| `fftn`      | 🟠      |                  |
+| `fftshift`  | 🟠      |                  |
+| `hfft`      | 🟠      |                  |
+| `ifft`      | 🟡      | only powers of 2 |
+| `ifft2`     | 🟠      |                  |
+| `ifftn`     | 🟠      |                  |
+| `ifftshift` | 🟠      |                  |
+| `ihfft`     | 🟠      |                  |
+| `irfft`     | 🟠      |                  |
+| `irfft2`    | 🟠      |                  |
+| `irfftn`    | 🟠      |                  |
+| `rfft`      | 🟠      |                  |
+| `rfft2`     | 🟠      |                  |
+| `rfftfreq`  | 🟠      |                  |
+| `rfftn`     | 🟠      |                  |
 
 ## [`jax.numpy.linalg` module](https://docs.jax.dev/en/latest/jax.numpy.html#module-jax.numpy.linalg)
 
