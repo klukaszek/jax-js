@@ -140,12 +140,17 @@ function zeroTangentsJvp<P extends Primitive>(primitive: P): JvpRule<P> {
   };
 }
 
-/** Compute matmul(a, b.T), batched to last two axes. */
-function batchMatmulTransposed(a: Tracer, b: Tracer): Tracer {
+/** Compute `a @ b.T`, batched to last two axes. */
+function batchMatmulT(a: Tracer, b: Tracer): Tracer {
   return dot(
     a.reshape(a.shape.toSpliced(-1, 0, 1)),
     b.reshape(b.shape.toSpliced(-2, 0, 1)),
   );
+}
+
+/** Batch matrix transpose. */
+function mT(a: Tracer): Tracer {
+  return moveaxis(a, -2, -1);
 }
 
 const jvpRules: { [P in Primitive]: JvpRule<P> } = {
@@ -296,27 +301,27 @@ const jvpRules: { [P in Primitive]: JvpRule<P> } = {
   },
   [Primitive.Argsort]: zeroTangentsJvp(Primitive.Argsort),
   [Primitive.TriangularSolve]([a, b], [da, db], { unitDiagonal }) {
-    // a @ x.T = b.T  =>  da @ x.T + a @ dx.T = db.T
-    // So: a @ dx.T = db.T - da @ x.T
-    // Therefore: dx.T = triangular_solve(a, db.T - da @ x.T)
-    const x = triangularSolve(a.ref, b, { unitDiagonal });
-    const daxT = batchMatmulTransposed(da, x.ref);
-    const rhs = moveaxis(db, -2, -1).sub(daxT);
-    const dx = triangularSolve(a, moveaxis(rhs, -2, -1), { unitDiagonal });
+    // A @ X.T = B.T  =>  dA @ X.T + A @ dX.T = dB.T
+    // So: A @ dX.T = dB.T - dA @ X.T
+    // Therefore: dX.T = A^-1 @ (dB.T - dA @ X.T)
+    const x = triangularSolve(a.ref, b, { unitDiagonal }); // (A^-1 @ B.T).T
+    const dax = batchMatmulT(da, x.ref); // dA @ X.T
+    const rhsT = db.sub(mT(dax)); // (dB.T - dA @ X.T).T
+    const dx = triangularSolve(a, rhsT, { unitDiagonal });
     return [[x], [dx]];
   },
   [Primitive.Cholesky]([a], [da]) {
-    // If L = cholesky(A), so that A = L L^T, then
+    // If L = cholesky(A), so that A = L @ L^T, then
     // dL = L @ tril(S - 0.5 * diag(S)),
     //   where S = L^{-1} @ dA @ L^{-T}
     const L = cholesky(a.ref);
-    da = da.ref.add(moveaxis(da, -1, -2)).mul(0.5); // Symmetrize dA for grad
-    const W = triangularSolve(L.ref, da, { lower: true }); // dA.T @ L^{-T}
-    const S = triangularSolve(L.ref, moveaxis(W, -1, -2), { lower: true });
-    const dL = batchMatmulTransposed(
+    da = da.ref.add(mT(da)).mul(0.5); // Symmetrize dA for grad
+    const W = triangularSolve(L.ref, da, { lower: true }); // (L^-1 @ dA.T).T = dA @ L^-T
+    const ST = triangularSolve(L.ref, mT(W), { lower: true });
+    const dL = batchMatmulT(
       L.ref,
-      triu(S.ref as any, 1)
-        .add(triu(S as any))
+      triu(ST.ref as any, 1)
+        .add(triu(ST as any))
         .mul(0.5),
     );
     return [[L], [dL]];

@@ -84,8 +84,8 @@ export enum Primitive {
   // Routines (custom lowering)
   Sort = "sort", // sort(x, axis=-1)
   Argsort = "argsort", // argsort(x, axis=-1)
-  TriangularSolve = "triangular_solve", // upper triangular, U x = b
-  Cholesky = "cholesky", // returns lower triangular, L L^T
+  TriangularSolve = "triangular_solve", // A is upper triangular, A @ X.T = B.T
+  Cholesky = "cholesky", // A is positive-definite, A = L @ L^T
 
   // JIT compilation
   Jit = "jit",
@@ -416,7 +416,7 @@ export function triangularSolve(
     unitDiagonal = false,
   }: { lower?: boolean; unitDiagonal?: boolean } = {},
 ) {
-  // Solve a triangular linear system `a @ x.T = b.T`, transposed for speed.
+  // Solve a triangular linear system `A @ X.T = B.T`, transposed for speed.
   if (lower) {
     // Convert lower-triangular solve into upper-triangular solve by
     // flipping the matrices.
